@@ -1,0 +1,27 @@
+{
+    "appId": "com.pos-app.id",
+    "productName": "POS-Electron-App",
+    
+    "files": [
+        "dist-react/**/*",
+        "src/electron/**/*",
+        "package.json"
+    ],
+    "icon": "./app_icon.png",
+    "mac": {
+        "target": "dmg"
+    },
+    "linux": {
+        "target": "AppImage",
+        "category": "Utility"
+    },
+    "win": {
+        "target": "nsis"
+    },
+    "nsis": {
+        "oneClick": false,
+        "perMachine": true,
+        "allowElevation": true,
+        "allowToChangeInstallationDirectory": true
+    }
+}
