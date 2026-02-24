@@ -1,30 +1,35 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
+
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const handleClick = async () => {
+  const response = await window.api.ping("Hello Main")
+  console.log(response)
+}
+const handleAdd = async () => {
+  const result = await window.api.addProduct({
+    name: "Apple",
+    price: 20
+  })
+  console.log(result)
+}
+
+const loadProducts = async () => {
+  const products = await window.api.getProducts()
+  console.log(products)
+}
 
   return (
     <>
-      <div>
-        
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>POS-Development</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/ui/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      <button onClick={handleClick}>
+        Test IPC
+      </button>
+      <button onClick={handleAdd}>
+        Add Product
+      </button>
+      <button onClick={loadProducts}>
+        Load Products
+      </button>
     </>
   )
 }
