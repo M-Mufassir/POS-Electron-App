@@ -1,0 +1,135 @@
+/* Card Components - Content Containers */
+
+.pos-card {
+  background: var(--bg-white);
+  border: 1px solid var(--border-gray-200);
+  border-radius: 0;
+  padding: 1.5rem;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.pos-card:hover {
+  border-color: var(--text-hint);
+}
+
+.pos-card:active {
+  border-color: var(--primary);
+}
+
+/* Card with Shadow (Subtle) */
+.pos-card.elevated {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-gray-200);
+}
+
+.pos-card.elevated:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+/* Card Header */
+.pos-card-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-gray-200);
+  margin: -1.5rem -1.5rem 1.5rem -1.5rem;
+}
+
+.pos-card-header h3 {
+  margin: 0;
+  color: var(--text-body);
+  font-size: 1.125rem;
+  font-weight: var(--fw-bold);
+}
+
+.pos-card-header p {
+  margin: 0.25rem 0 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Card Body */
+.pos-card-body {
+  padding: 0;
+}
+
+/* Card Footer */
+.pos-card-footer {
+  padding: 1.5rem;
+  border-top: 1px solid var(--border-gray-200);
+  margin: 1.5rem -1.5rem -1.5rem -1.5rem;
+  background: var(--bg-light);
+}
+
+.pos-card-footer button + button {
+  margin-left: 0.5rem;
+}
+
+/* Compact Card */
+.pos-card.compact {
+  padding: 1rem;
+}
+
+.pos-card.compact .pos-card-header {
+  padding: 0.75rem;
+  margin: -1rem -1rem 1rem -1rem;
+}
+
+.pos-card.compact .pos-card-footer {
+  padding: 0.75rem;
+  margin: 1rem -1rem -1rem -1rem;
+}
+
+/* Card with Border Accent */
+.pos-card.accent-primary {
+  border-left: 4px solid var(--primary);
+}
+
+.pos-card.accent-success {
+  border-left: 4px solid var(--success);
+}
+
+.pos-card.accent-danger {
+  border-left: 4px solid var(--danger);
+}
+
+.pos-card.accent-warning {
+  border-left: 4px solid var(--warning);
+}
+
+/* Transparent Card */
+.pos-card.transparent {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+/* Info Card */
+.pos-card.info {
+  background: #e0f2fe;
+  border: 1px solid #0284c7;
+}
+
+.pos-card.info-dark {
+  background: #e0f2fe;
+  border-left: 4px solid #0284c7;
+}
+
+/* Success Card */
+.pos-card.success-card {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+}
+
+/* Warning Card */
+.pos-card.warning-card {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+}
+
+/* Error Card */
+.pos-card.error-card {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+}

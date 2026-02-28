@@ -1,0 +1,114 @@
+/* Form Components - Inputs, Labels, Form Groups */
+
+/* Form Group */
+.pos-form-group {
+  margin-bottom: 1.5rem;
+}
+
+/* Label */
+.pos-label {
+  display: block;
+  font-weight: var(--fw-medium);
+  color: var(--text-label);
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  letter-spacing: 0.2px;
+}
+
+/* Input Fields */
+.pos-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--bg-white);
+  border: 1px solid var(--border-gray-300);
+  border-radius: 0;
+  color: var(--text-body);
+  font-size: 0.95rem;
+  font-weight: var(--fw-normal);
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.pos-input::placeholder {
+  color: var(--text-hint);
+  font-weight: var(--fw-normal);
+}
+
+.pos-input:hover {
+  border-color: var(--text-muted);
+}
+
+.pos-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: var(--bg-white);
+}
+
+.pos-input:disabled {
+  background: var(--bg-light);
+  color: var(--text-hint);
+  cursor: not-allowed;
+  font-weight: var(--fw-normal);
+}
+
+/* Input Error State */
+.pos-input.error {
+  border-color: var(--danger);
+}
+
+.pos-input.error:focus {
+  border-color: var(--danger-dark);
+}
+
+/* Input Success State */
+.pos-input.success {
+  border-color: var(--success);
+}
+
+.pos-input.success:focus {
+  border-color: var(--success-dark);
+}
+
+/* Text Area */
+textarea.pos-input {
+  min-height: 120px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+/* Select */
+select.pos-input {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor'%3e%3cpath d='M6 9l6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+}
+
+/* File Input */
+input[type="file"].pos-input {
+  padding: 0.5rem;
+}
+
+/* Input Group */
+.pos-input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pos-input-group .pos-input {
+  flex: 1;
+}
+
+.pos-input-group-addon {
+  padding: 0.75rem 1rem;
+  background: var(--bg-light);
+  border: 1px solid var(--border-gray-300);
+  color: var(--text-label);
+  font-weight: var(--fw-medium);
+  font-size: 0.9rem;
+}

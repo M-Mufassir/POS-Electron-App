@@ -1,49 +1,68 @@
 import React from "react"
-import { useNavigate } from "react-router-dom"
 
-function Table({ data = [], tableSchema = [] }) {
-  const navigate = useNavigate()
+function Table({ data = [], tableSchema = [], onRowClick, onActionClick, actionLabel = "View" }) {
 
-  const handleActionClicked = (id) => {
-    navigate(`/products/${id}`)
+  const handleRowClicked = (id) => {
+    if (onRowClick) {
+      onRowClick(id)
+    }
+  }
+
+  const handleActionClicked = (event, row) => {
+    event.stopPropagation()
+    if (onActionClick) {
+      onActionClick(row.id, row)
+      return
+    }
+    handleRowClicked(row.id)
   }
 
   return (
-    <div className="p-6">
-      <div className="bg-white shadow-md rounded-xl overflow-hidden">
-        <table className="min-w-full text-sm text-left">
-          <thead className="bg-gray-100 text-gray-600 uppercase text-xs tracking-wider">
+    <div className="pos-card overflow-hidden h-full flex flex-col">
+      <div className="overflow-x-auto overflow-y-auto flex-1">
+        <table className="pos-table">
+          <thead>
             <tr>
               {tableSchema.map((col) => (
-                <th key={col.key} className="px-6 py-4">
+                <th key={col.key}>
                   {col.name}
                 </th>
               ))}
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-gray-200">
+          <tbody>
             {data.map((row) => (
-              <tr key={row.id} className="hover:bg-gray-50 transition">
+              <tr
+                key={row.id}
+                className={onRowClick ? "cursor-pointer" : ""}
+                onClick={() => handleRowClicked(row.id)}
+              >
                 {tableSchema.map((col) => {
                   
                   if (col.type === "action") {
                     return (
-                      <td key={col.key} className="px-6 py-4 text-center">
+                      <td key={col.key} className="text-center">
                         <button
-                          onClick={() => handleActionClicked(row.id)}
-                          className="text-blue-600 hover:text-blue-800 transition transform hover:scale-110"
+                          onClick={(e) => handleActionClicked(e, row)}
+                          className="pos-btn-primary py-2 px-4 inline-block"
+                          title={actionLabel}
                         >
-                          ➜
+                          {actionLabel}
                         </button>
                       </td>
                     )
                   }
 
-                  // 🔥 Handle Normal Columns
+                  // Handle Normal Columns
                   return (
-                    <td key={col.key} className="px-6 py-4">
-                      {row[col.key] ?? "-"}
+                    <td key={col.key} className="text-gray-700 font-medium">
+                      {col.type === "number" 
+                        ? typeof row[col.key] === "number" 
+                          ? `$${row[col.key].toFixed(2)}`
+                          : row[col.key] ?? "-"
+                        : row[col.key] ?? "-"
+                      }
                     </td>
                   )
                 })}
@@ -54,9 +73,9 @@ function Table({ data = [], tableSchema = [] }) {
               <tr>
                 <td
                   colSpan={tableSchema.length}
-                  className="text-center py-6 text-gray-500"
+                  className="text-center py-8 text-gray-500 font-medium"
                 >
-                  No data found.
+                  No products found. Add one to get started!
                 </td>
               </tr>
             )}

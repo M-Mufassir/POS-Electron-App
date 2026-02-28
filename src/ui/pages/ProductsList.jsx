@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import Table from "../components/table"
+import Table from "../components/Table"
 
 export default function ProductsList() {
   const [products, setProducts] = useState([])
@@ -28,32 +28,56 @@ export default function ProductsList() {
     navigate(`/products/${id}`)
   }
 
+  const handleEditProduct = (id) => {
+    navigate(`/products/${id}/edit`)
+  }
+
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen text-gray-600">
-        Loading products...
+      <div className="pos-container flex justify-center items-center h-screen">
+        <div className="text-center">
+          <div className="text-lg text-gray-600">Loading your products...</div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="p-6">
-      
-      <h1 className="text-2xl font-semibold mb-6 text-gray-800">
-        Products
-      </h1>
+    <div className="pos-container">
+      <div className="pos-header">
+        <div>
+          <h1 className="pos-section-title">
+            Products Inventory
+          </h1>
+          <p className="pos-section-subtitle">Manage your product catalog</p>
+        </div>
+      </div>
 
-      <div className="bg-white shadow-md rounded-xl overflow-hidden">
-        <Table 
-          data={products}
-          tableSchema={[
+      <div className="p-6 flex-1 flex flex-col overflow-hidden">
+        <div className="mb-6">
+          <button
+            onClick={() => navigate("/products/add")}
+            className="pos-btn-success"
+          >
+            Add New Product
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-hidden">
+          <Table 
+            data={products}
+            tableSchema={[
             { name: "ID", key: "code", type: "string" },
             { name: "Name", key: "name", type: "string" },
             { name: "Price", key: "base_price", type: "number" },
             { name: "Base Unit", key: "base_unit_name", type: "string" },
             { name: "Actions", key: "action", type: "action" }
           ]}
-        />
+            onRowClick={handleViewDetails}
+            onActionClick={handleEditProduct}
+            actionLabel="Edit"
+          />
+        </div>
       </div>
     </div>
   )

@@ -3,6 +3,8 @@
 import { Routes, Route } from "react-router-dom"
 import ProductsList from "../pages/ProductsList"
 import ProductDetails from "../pages/ProductDetails"
+import AddProduct from "../pages/AddProduct"
+import EditProduct from "../pages/EditProduct"
 export default function AppRoutes() {
   return (
     <Routes>
@@ -11,6 +13,9 @@ export default function AppRoutes() {
 
       {/* Product Details Page */}
       <Route path="/products/:id" element={<ProductDetails />} />
+
+      <Route path="/products/add" element={<AddProduct />} />
+      <Route path="/products/:id/edit" element={<EditProduct />} />
     </Routes>
   )
 }

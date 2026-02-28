@@ -4,21 +4,26 @@ export function addProduct(product) {
   const db = getDB()
 
   return new Promise((resolve, reject) => {
-    const { name, price } = product
+    const { code, name, description, base_price, base_unit_id, created_at } = product
 
     db.run(
-      `INSERT INTO products (name, price) VALUES (?, ?)`,
-      [name, price],
+      `INSERT INTO products 
+       (code, name, description, base_unit_id, base_price, status, created_at, updated_at) 
+       VALUES (?, ?, ?, ?, ?, 1, ?, ?)`,
+      [code, name, description, base_unit_id, base_price, created_at || new Date().toISOString(), new Date().toISOString()],
       function (err) {
         if (err) {
-          reject(err.message)
-        } else {
-          resolve({
-            id: this.lastID,
-            name,
-            price
-          })
+          return reject(new Error("Failed to insert product: " + err.message))
         }
+
+        resolve({
+          id: this.lastID,
+          code,
+          name,
+          description,
+          base_price,
+          base_unit_id
+        })
       }
     )
   })
@@ -97,5 +102,131 @@ export function getProductById(id) {
         );
       }
     );
+  });
+}
+
+export function updateProduct(id, product) {
+  const db = getDB()
+  
+  return new Promise((resolve, reject) => {
+    const {
+      code,
+      name,
+      description,
+      base_price,
+      base_unit_id,
+      categories = [],
+      units = [],
+    } = product
+
+    const runQuery = (sql, params = []) =>
+      new Promise((innerResolve, innerReject) => {
+        db.run(sql, params, function (err) {
+          if (err) {
+            innerReject(err)
+            return
+          }
+          innerResolve(this)
+        })
+      })
+
+    ;(async () => {
+      try {
+        await runQuery("BEGIN TRANSACTION")
+
+        await runQuery(
+          `UPDATE products 
+           SET code = ?, name = ?, description = ?, base_price = ?, base_unit_id = ?, updated_at = datetime('now')
+           WHERE id = ?`,
+          [code, name, description, base_price, base_unit_id, id],
+        )
+
+        await runQuery(`DELETE FROM product_categories WHERE product_id = ?`, [id])
+        for (const categoryId of categories) {
+          const parsedCategoryId = Number(categoryId)
+          if (Number.isNaN(parsedCategoryId)) {
+            continue
+          }
+          await runQuery(
+            `INSERT INTO product_categories (product_id, category_id) VALUES (?, ?)`,
+            [id, parsedCategoryId],
+          )
+        }
+
+        await runQuery(`DELETE FROM product_units WHERE product_id = ?`, [id])
+        for (const unit of units) {
+          const parsedUnitId = Number(unit?.unit_id ?? unit?.id)
+          const parsedMultiplier = Number(unit?.conversion_multiplier)
+
+          if (Number.isNaN(parsedUnitId) || Number.isNaN(parsedMultiplier)) {
+            continue
+          }
+
+          await runQuery(
+            `INSERT INTO product_units (product_id, unit_id, conversion_multiplier) VALUES (?, ?, ?)`,
+            [id, parsedUnitId, parsedMultiplier],
+          )
+        }
+
+        await runQuery("COMMIT")
+
+        resolve({
+          id,
+          code,
+          name,
+          description,
+          base_price,
+          base_unit_id,
+          categories,
+          units,
+        })
+      } catch (err) {
+        try {
+          await runQuery("ROLLBACK")
+        } catch {
+          // Ignore rollback error and return original failure.
+        }
+        reject(new Error("Failed to update product: " + err.message))
+      }
+    })()
+  })
+}
+
+export function deleteProduct(id) {
+  const db = getDB()
+  return new Promise((resolve, reject) => {
+    db.run(`DELETE FROM products WHERE id = ?`, [id], function (err) {
+      if (err) {
+        return reject(new Error("Failed to delete product: " + err.message))
+      }
+      resolve()
+    })
+  })
+}
+
+export function inactivateProduct(id) {
+  const db = getDB()
+  return new Promise((resolve, reject) => {
+    db.run(`UPDATE products SET status = 0, updated_at = datetime('now') WHERE id = ?`, [id], function (err) {
+      if (err) {
+        return reject(new Error("Failed to inactivate product: " + err.message))
+      }
+      resolve()
+    })
+  })
+}
+
+export function getAllUnits(){
+    const db = getDB()
+
+    return new Promise((resolve, reject) => {
+      db.all(`SELECT * FROM units WHERE status = 1`, [], (err, rows) => {
+          if (err) {
+              console.error("Error fetching units:", err);
+              return reject(err);
+          }
+          resolve(rows);
+      }
+      );
   });
 }

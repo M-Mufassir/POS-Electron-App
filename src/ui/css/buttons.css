@@ -1,0 +1,133 @@
+/* Button Styles - Primary, Secondary, Success, Danger */
+
+/* Primary Button */
+.pos-btn-primary {
+  background: var(--primary);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0;
+  font-weight: var(--fw-semibold);
+  font-size: 0.95rem;
+  letter-spacing: 0.3px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.pos-btn-primary:hover {
+  background: var(--primary-dark);
+}
+
+.pos-btn-primary:active {
+  background: #1b3a8a;
+  opacity: 0.95;
+}
+
+.pos-btn-primary:disabled {
+  background: var(--text-hint);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Secondary Button */
+.pos-btn-secondary {
+  background: var(--bg-white);
+  color: var(--text-body);
+  padding: 0.75rem 1.5rem;
+  border-radius: 0;
+  font-weight: var(--fw-semibold);
+  font-size: 0.95rem;
+  letter-spacing: 0.3px;
+  border: 1px solid var(--border-gray-300);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.pos-btn-secondary:hover {
+  background: var(--bg-light);
+  border-color: var(--text-muted);
+  color: var(--primary);
+}
+
+.pos-btn-secondary:active {
+  background: #f1f5f9;
+}
+
+.pos-btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Success Button */
+.pos-btn-success {
+  background: var(--success);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.pos-btn-success:hover {
+  background: var(--success-dark);
+}
+
+.pos-btn-success:active {
+  opacity: 0.95;
+}
+
+.pos-btn-success:disabled {
+  background: var(--text-hint);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Danger Button */
+.pos-btn-danger {
+  background: var(--danger);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.pos-btn-danger:hover {
+  background: var(--danger-dark);
+}
+
+.pos-btn-danger:active {
+  opacity: 0.95;
+}
+
+.pos-btn-danger:disabled {
+  background: var(--text-hint);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Warning Button */
+.pos-btn-warning {
+  background: var(--warning);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.pos-btn-warning:hover {
+  background: var(--warning-dark);
+}

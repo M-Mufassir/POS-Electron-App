@@ -1,0 +1,166 @@
+/* Layout Components - Structure and Containers */
+
+/* App Layout */
+.app-layout {
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: var(--bg-light);
+}
+
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-light);
+  margin-left: 260px;
+}
+
+.app-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--bg-light);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Container */
+.pos-container {
+  background: var(--bg-light);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* Header */
+.pos-header {
+  background: var(--bg-white);
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid var(--border-gray-200);
+  flex-shrink: 0;
+}
+
+.pos-header h1,
+.pos-header p {
+  color: var(--text-body);
+  margin: 0;
+}
+
+.pos-header h1 {
+  font-size: 1.875rem;
+  font-weight: var(--fw-bold);
+}
+
+.pos-header p {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+/* Typography */
+.pos-section-title {
+  font-size: 1.875rem;
+  font-weight: var(--fw-bold);
+  color: var(--text-body);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pos-section-subtitle {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+}
+
+/* Content Section */
+.pos-section {
+  padding: 2rem;
+}
+
+.pos-section.compact {
+  padding: 1rem;
+}
+
+/* Grid Layouts */
+.pos-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.pos-grid.cols-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.pos-grid.cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.pos-grid.cols-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 1024px) {
+  .pos-grid.cols-3,
+  .pos-grid.cols-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .pos-grid.cols-2,
+  .pos-grid.cols-3,
+  .pos-grid.cols-4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Flex Container */
+.pos-flex {
+  display: flex;
+  gap: 1rem;
+}
+
+.pos-flex.between {
+  justify-content: space-between;
+}
+
+.pos-flex.center {
+  justify-content: center;
+}
+
+.pos-flex.end {
+  justify-content: flex-end;
+}
+
+.pos-flex.vertical {
+  flex-direction: column;
+}
+
+/* Scrollbar - Light Theme */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-gray-300);
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}

@@ -50,3 +50,28 @@ ipcMain.handle('get-product-by-id', async (event, id) => {
   const { getProductById } = await import('./database/productService.js')
   return await getProductById(id)
 })
+
+ipcMain.handle('update-product', async (event, { id, product }) => {
+  const { updateProduct } = await import('./database/productService.js')
+  return await updateProduct(id, product)
+})
+
+ipcMain.handle('delete-product', async (event, id) => {
+  const { deleteProduct } = await import('./database/productService.js')
+  return await deleteProduct(id)
+})
+
+ipcMain.handle('inactivate-product', async (event, id) => {
+  const { inactivateProduct } = await import('./database/productService.js')
+  return await inactivateProduct(id)
+})
+
+ipcMain.handle('get-all-categories', async () => {
+  const { getAllCategories } = await import('./database/unitService.js')
+  return await getAllCategories()
+})
+
+ipcMain.handle('get-all-units', async () => {
+  const { getAllUnits } = await import('./database/productService.js')
+  return await getAllUnits()
+})

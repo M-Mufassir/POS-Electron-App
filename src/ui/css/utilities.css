@@ -1,0 +1,270 @@
+/* Utility Classes and State Styles */
+
+/* Utility Classes */
+.h-full {
+  height: 100%;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+/* State Colors - Success */
+.text-success {
+  color: var(--success);
+}
+
+.bg-success-subtle {
+  background: rgba(22, 163, 74, 0.08);
+  border: 1px solid rgba(22, 163, 74, 0.2);
+  padding: 1rem;
+  border-radius: 0;
+}
+
+.text-success-bold {
+  color: var(--success);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.2px;
+}
+
+/* State Colors - Danger */
+.text-danger {
+  color: var(--danger);
+}
+
+.bg-danger-subtle {
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  padding: 1rem;
+  border-radius: 0;
+}
+
+.text-danger-bold {
+  color: var(--danger);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.2px;
+}
+
+/* State Colors - Warning */
+.text-warning {
+  color: var(--warning);
+}
+
+.bg-warning-subtle {
+  background: rgba(202, 138, 4, 0.08);
+  border: 1px solid rgba(202, 138, 4, 0.2);
+  padding: 1rem;
+  border-radius: 0;
+}
+
+.text-warning-bold {
+  color: var(--warning);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.2px;
+}
+
+/* Text Utilities */
+.text-muted {
+  color: var(--text-muted);
+  font-weight: var(--fw-normal);
+}
+
+.text-bold {
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.3px;
+}
+
+.text-semibold {
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.2px;
+}
+
+.text-medium {
+  font-weight: var(--fw-medium);
+  letter-spacing: 0.2px;
+}
+
+.text-sm {
+  font-size: 0.875rem;
+}
+
+.text-lg {
+  font-size: 1.125rem;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+/* Spacing Utilities */
+.gap-1 {
+  gap: 0.25rem;
+}
+
+.gap-2 {
+  gap: 0.5rem;
+}
+
+.gap-4 {
+  gap: 1rem;
+}
+
+.gap-6 {
+  gap: 1.5rem;
+}
+
+.p-2 {
+  padding: 0.5rem;
+}
+
+.p-4 {
+  padding: 1rem;
+}
+
+.p-6 {
+  padding: 1.5rem;
+}
+
+.px-4 {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.py-4 {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+/* Badge Styles */
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0;
+  font-size: 0.75rem;
+  font-weight: var(--fw-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-success {
+  background: rgba(22, 163, 74, 0.15);
+  color: var(--success);
+}
+
+.badge-danger {
+  background: rgba(220, 38, 38, 0.15);
+  color: var(--danger);
+}
+
+.badge-warning {
+  background: rgba(202, 138, 4, 0.15);
+  color: var(--warning);
+}
+
+.badge-primary {
+  background: rgba(37, 99, 235, 0.15);
+  color: var(--primary);
+}
+
+/* Alert Styles */
+.alert {
+  padding: 1rem 1.5rem;
+  border-radius: 0;
+  font-weight: var(--fw-medium);
+  border: 1px solid;
+  letter-spacing: 0.2px;
+}
+
+.alert-success {
+  background: #f0fdf4;
+  border-color: var(--success);
+  color: var(--success-dark);
+}
+
+.alert-danger {
+  background: #fef2f2;
+  border-color: var(--danger);
+  color: var(--danger-dark);
+}
+
+.alert-warning {
+  background: #fffbe6;
+  border-color: var(--warning);
+  color: #854d0e;
+}
+
+.alert-info {
+  background: #f0f9ff;
+  border-color: #0284c7;
+  color: #0c4a6e;
+}
+
+/* Loading Spinner (minimal) */
+.spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--border-gray-300);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: var(--text-muted);
+}
+
+.empty-state-title {
+  font-size: 1.125rem;
+  font-weight: var(--fw-semibold);
+  color: var(--text-body);
+  margin-bottom: 0.5rem;
+}
+
+.empty-state-description {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+}
+
+/* Divider */
+.divider {
+  border-top: 1px solid var(--border-gray-200);
+  margin: 1.5rem 0;
+}
+
+.divider-vertical {
+  border-left: 1px solid var(--border-gray-200);
+  margin: 0 1rem;
+  height: auto;
+}
+
+/* Shadow Utilities */
+.shadow-sm {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.shadow-md {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
+import DynamicForm from "../components/DynamicForm"
 
 export default function ProductDetails() {
   const { id } = useParams()
@@ -29,136 +30,134 @@ export default function ProductDetails() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen text-gray-600">
-        Loading product details...
+      <div className="pos-container flex justify-center items-center h-screen">
+        <div className="text-center">
+          <p className="text-gray-600 text-lg">Loading product details...</p>
+        </div>
       </div>
     )
   }
 
   if (!product) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen text-gray-600">
-        <p className="mb-4">Product not found.</p>
-        <button
-          onClick={() => navigate("/")}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-        >
-          Back to Products
-        </button>
+      <div className="pos-container flex flex-col items-center justify-center h-screen">
+        <div className="text-center">
+          <p className="text-gray-600 text-lg mb-6">Product not found.</p>
+          <button
+            onClick={() => navigate("/")}
+            className="pos-btn-primary"
+          >
+            Back to Products
+          </button>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="pos-container">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold text-gray-800">
-          Product Details
-        </h1>
-
-        <button
-          onClick={() => navigate("/")}
-          className="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
-        >
-          ← Back
-        </button>
+      <div className="pos-header">
+        <div>
+          <h1 className="pos-section-title">Product Details</h1>
+          <p className="pos-section-subtitle">View and manage product information</p>
+        </div>
       </div>
 
       {/* Main Card */}
-      <div className="bg-white shadow-md rounded-xl p-6 space-y-6">
+      <div className="p-6 overflow-y-auto flex-1">
+      <button
+        onClick={() => navigate("/")}
+        className="pos-btn-secondary mb-6"
+      >
+        Back to Products
+      </button>
+      <div className="pos-card p-8 space-y-8">
 
         {/* Basic Info */}
         <div>
-          <h2 className="text-lg font-semibold mb-3 text-gray-700">
-            Basic Information
-          </h2>
+          <h3 className="pos-section-title">Basic Information</h3>
 
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-gray-500">Code:</span>
-              <p className="font-medium">{product.code}</p>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <p className="text-gray-500 text-sm mb-1">Code</p>
+              <p className="text-xl font-bold text-gray-800">{product.code}</p>
             </div>
 
-            <div>
-              <span className="text-gray-500">Name:</span>
-              <p className="font-medium">{product.name}</p>
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <p className="text-gray-500 text-sm mb-1">Name</p>
+              <p className="text-xl font-bold text-blue-700">{product.name}</p>
             </div>
 
-            <div>
-              <span className="text-gray-500">Price:</span>
-              <p className="font-medium">${product.base_price}</p>
+            <div className="bg-gray-100 p-4 rounded-lg border border-gray-300">
+              <p className="text-gray-500 text-sm mb-1">Price</p>
+              <p className="text-2xl font-bold text-gray-900">${product.base_price?.toFixed(2) || '0.00'}</p>
             </div>
 
-            <div>
-              <span className="text-gray-500">Base Unit:</span>
-              <p className="font-medium">{product.base_unit_name}</p>
-              
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <p className="text-gray-500 text-sm mb-1">Base Unit</p>
+              <p className="text-xl font-bold text-blue-700">{product.base_unit_name}</p>
             </div>
           </div>
         </div>
 
         {/* Units Section */}
         <div>
-          <h2 className="text-lg font-semibold mb-3 text-gray-700">
-            Available Units
-          </h2>
+          <h3 className="pos-section-title">Available Units</h3>
 
           {product.units && product.units.length > 0 ? (
-            <div className="border rounded-lg overflow-hidden">
-              <table className="min-w-full text-sm text-left">
-                <thead className="bg-gray-100 text-gray-600">
+            <div className="overflow-x-auto rounded-lg border border-gray-200">
+              <table className="pos-table">
+                <thead>
                   <tr>
-                    <th className="px-4 py-3">Name</th>
-                    <th className="px-4 py-3">Symbol</th>
-                    <th className="px-4 py-3">Conversion Multiplier</th>
+                    <th>Unit Name</th>
+                    <th>Symbol</th>
+                    <th>Multiplier</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody>
                   {product.units.map((unit) => (
                     <tr key={unit.id}>
-                      <td className="px-4 py-3">{unit.name}</td>
-                      <td className="px-4 py-3">{unit.symbol}</td>
-                      <td className="px-4 py-3">
-                        {unit.conversion_multiplier}
-                      </td>
+                      <td className="font-medium text-gray-800">{unit.name}</td>
+                      <td className="text-center font-bold text-gray-700">{unit.symbol}</td>
+                      <td className="text-center font-bold text-gray-700">×{unit.conversion_multiplier}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           ) : (
-            <p className="text-gray-500 text-sm">
+            <div className="bg-gray-50 border border-gray-300 p-4 rounded-lg text-gray-600 text-sm">
               No additional units available.
-            </p>
+            </div>
           )}
         </div>
 
         {/* Categories Section */}
         <div>
-          <h2 className="text-lg font-semibold mb-3 text-gray-700">
-            Categories
-          </h2>
+          <h3 className="pos-section-title">Categories</h3>
 
           {product.categories && product.categories.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3">
               {product.categories.map((category) => (
                 <span
                   key={category.id}
-                  className="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-full"
+                  className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm font-medium rounded-full shadow-md"
                 >
                   {category.name}
                 </span>
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-sm">
-              No categories assigned.
-            </p>
+            <div className="bg-gray-50 border border-gray-300 p-4 rounded-lg text-gray-600 text-sm">
+              No categories assigned yet.
+            </div>
           )}
         </div>
 
       </div>
-    </div>
+      </div>
+      </div>
   )
+  
 }

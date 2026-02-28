@@ -1,3 +1,143 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/**
+ * ============================================
+ * MAIN THEME FILE - Professional Light POS
+ * ============================================
+ * 
+ * This file contains ONLY theme variables.
+ * Component styles are in separate CSS files.
+ * 
+ * EDIT GUIDE:
+ * - Colors/Fonts: This file
+ * - Buttons: buttons.css
+ * - Forms: forms.css
+ * - Tables: tables.css
+ * - Navbar: navbar.css
+ * - Cards: cards.css
+ * - Layout: layout.css
+ * - Utilities: utilities.css
+ * ============================================
+ */
+
+/* ========= THEME VARIABLES ========= */
+:root {
+  /* Brand Colors */
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --primary-light: #3b82f6;
+
+  /* Status Colors */
+  --success: #16a34a;
+  --success-dark: #15803d;
+  --warning: #ca8a04;
+  --warning-dark: #b8860b;
+  --danger: #dc2626;
+  --danger-dark: #991b1b;
+
+  /* Background & Text */
+  --bg-light: #f8fafc;
+  --bg-white: #ffffff;
+
+  /* Text Colors - Clear Typography Hierarchy */
+  --text-h1: #0f172a;
+  --text-h2: #1e293b;
+  --text-h3: #1e293b;
+  --text-body: #1e293b;
+  --text-label: #475569;
+  --text-muted: #64748b;
+  --text-hint: #94a3b8;
+
+  /* Borders */
+  --border-gray-200: #e2e8f0;
+  --border-gray-300: #cbd5e1;
+
+  /* Font Weights */
+  --fw-light: 300;
+  --fw-normal: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+}
+
+/* ========= BASE STYLES ========= */
+* {
+  transition: all 0.15s ease;
+}
+
+html,
+body {
+  background: var(--bg-light);
+  color: var(--text-body);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
+    "Cantarell", sans-serif;
+  font-weight: var(--fw-normal);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Typography Hierarchy */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  font-weight: var(--fw-bold);
+}
+
+h1 {
+  font-size: 1.875rem;
+  color: var(--text-h1);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.5px;
+}
+
+h2 {
+  font-size: 1.5rem;
+  color: var(--text-h2);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.4px;
+}
+
+h3 {
+  font-size: 1.25rem;
+  color: var(--text-h3);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.3px;
+}
+
+p {
+  color: var(--text-body);
+  font-weight: var(--fw-normal);
+  line-height: 1.5;
+}
+
+label {
+  color: var(--text-label);
+  font-weight: var(--fw-medium);
+  letter-spacing: 0.2px;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-gray-300);
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
