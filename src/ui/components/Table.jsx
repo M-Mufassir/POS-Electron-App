@@ -54,6 +54,23 @@ function Table({ data = [], tableSchema = [], onRowClick, onActionClick, actionL
                     )
                   }
 
+                  if (col.type === "status") {
+                    const isActive = Number(row[col.key]) === 1
+                    return (
+                      <td key={col.key}>
+                        <span
+                          className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                            isActive
+                              ? "bg-green-100 text-green-800 border border-green-200"
+                              : "bg-red-100 text-red-800 border border-red-200"
+                          }`}
+                        >
+                          {isActive ? "Active" : "Inactive"}
+                        </span>
+                      </td>
+                    )
+                  }
+
                   // Handle Normal Columns
                   return (
                     <td key={col.key} className="text-gray-700 font-medium">

@@ -67,11 +67,72 @@ ipcMain.handle('inactivate-product', async (event, id) => {
 })
 
 ipcMain.handle('get-all-categories', async () => {
-  const { getAllCategories } = await import('./database/unitService.js')
+  const { getAllCategories } = await import('./database/categoryService.js')
   return await getAllCategories()
 })
 
 ipcMain.handle('get-all-units', async () => {
-  const { getAllUnits } = await import('./database/productService.js')
+  const { getAllUnits } = await import('./database/unitService.js')
   return await getAllUnits()
 })
+
+ipcMain.handle('get-units-with-product-counts', async () => {
+  const { getUnitsWithProductCounts } = await import('./database/unitService.js')
+  return await getUnitsWithProductCounts()
+})
+
+ipcMain.handle('add-unit', async (event, unit) => {
+  const { addUnit } = await import('./database/unitService.js')
+  return await addUnit(unit)
+})
+
+ipcMain.handle('get-categories-with-product-counts', async () => {
+  const { getCategoriesWithProductCounts } = await import('./database/categoryService.js')
+  return await getCategoriesWithProductCounts()
+})
+
+ipcMain.handle('add-category', async (event, category) => {
+  const { addCategory } = await import('./database/categoryService.js')
+  return await addCategory(category)
+})
+
+ipcMain.handle('add-product-category', async (event, productId, categoryId) => {
+  const { addProductCategory } = await import('./database/productService.js')
+  return await addProductCategory(productId, categoryId)
+})
+
+ipcMain.handle('get-product-categories-by-product-id', async (event, productId) => {
+  const { getProductCategoriesByProductId } = await import('./database/productService.js')
+  return await getProductCategoriesByProductId(productId)
+})
+
+ipcMain.handle('remove-product-category', async (event, productId, categoryId) => {
+  const { removeProductCategory } = await import('./database/productService.js')
+  return await removeProductCategory(productId, categoryId)
+})
+
+ipcMain.handle('get-barcodes-by-product-id', async (event, productId) => {
+  const { getBarcodesByProductId } = await import('./database/barcodeService.js')
+  return await getBarcodesByProductId(productId)
+})
+
+ipcMain.handle('get-assignable-units-by-product-id', async (event, productId) => {
+  const { getAssignableUnitsByProductId } = await import('./database/barcodeService.js')
+  return await getAssignableUnitsByProductId(productId)
+})
+
+ipcMain.handle('add-barcode', async (event, barcodeData) => {
+  const { addBarcode } = await import('./database/barcodeService.js')
+  return await addBarcode(barcodeData)
+})
+
+ipcMain.handle('update-barcode', async (event, { id, barcode }) => {
+  const { updateBarcode } = await import('./database/barcodeService.js')
+  return await updateBarcode(id, barcode)
+})
+
+ipcMain.handle('delete-barcode', async (event, id) => {
+  const { deleteBarcode } = await import('./database/barcodeService.js')
+  return await deleteBarcode(id)
+})
+

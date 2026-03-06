@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import Table from "../components/Table"
+import Table from "../../components/Table"
 
 export default function ProductsList() {
   const [products, setProducts] = useState([])
@@ -71,6 +71,7 @@ export default function ProductsList() {
             { name: "Name", key: "name", type: "string" },
             { name: "Price", key: "base_price", type: "number" },
             { name: "Base Unit", key: "base_unit_name", type: "string" },
+            { name: "Status", key: "status", type: "status" },
             { name: "Actions", key: "action", type: "action" }
           ]}
             onRowClick={handleViewDetails}

@@ -1,10 +1,10 @@
-import React, { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import React, { useState } from "react"
+import { useLocation, useNavigate } from "react-router-dom"
 
 const Navbar = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [isCollapsed, setIsCollapsed] = useState(false)
 
   const menuItems = [
     {
@@ -15,9 +15,21 @@ const Navbar = () => {
       label: "Add Product",
       path: "/products/add",
     },
-  ];
+    {
+      label: "Categories",
+      path: "/categories",
+    },
+    {
+      label: "Units",
+      path: "/units",
+    },
+    {
+      label: "Barcodes",
+      path: "/barcodes",
+    },
+  ]
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path) => location.pathname === path
 
   return (
     <nav className={`pos-navbar ${isCollapsed ? "collapsed" : ""}`}>
@@ -39,8 +51,8 @@ const Navbar = () => {
           <li key={item.path}>
             <button
               onClick={() => {
-                navigate(item.path);
-                setIsCollapsed(true);
+                navigate(item.path)
+                setIsCollapsed(true)
               }}
               className={`navbar-link ${isActive(item.path) ? "active" : ""}`}
             >
@@ -62,7 +74,7 @@ const Navbar = () => {
         <p className="navbar-version">v1.0.0</p>
       </div>
     </nav>
-  );
-};
+  )
+}
 
-export default Navbar;
+export default Navbar

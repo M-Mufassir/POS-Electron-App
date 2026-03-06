@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
-import DynamicForm from "../components/DynamicForm"
+import DynamicForm from "../../components/DynamicForm"
+import Banner from "../../components/Banner"
+import CategorySection from "./components/CategorySection"
+import UnitSection from "./components/UnitSection"
 
 export default function EditProduct() {
   const { id } = useParams()
@@ -8,13 +11,14 @@ export default function EditProduct() {
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [deletingProduct, setDeletingProduct] = useState(false)
   const [product, setProduct] = useState(null)
   const [units, setUnits] = useState([])
   const [categories, setCategories] = useState([])
   const [selectedCategories, setSelectedCategories] = useState([])
   const [selectedUnits, setSelectedUnits] = useState([])
-  const [showCategoryEditor, setShowCategoryEditor] = useState(false)
-  const [showUnitEditor, setShowUnitEditor] = useState(false)
+  const [status, setStatus] = useState(1)
+  const [banner, setBanner] = useState({ type: "", message: "" })
 
   useEffect(() => {
     const fetchData = async () => {
@@ -30,6 +34,7 @@ export default function EditProduct() {
         setProduct(productData)
         setUnits(Array.isArray(allUnits) ? allUnits : [])
         setCategories(Array.isArray(allCategories) ? allCategories : [])
+        setStatus(Number(productData?.status) === 0 ? 0 : 1)
         setSelectedCategories((productData?.categories || []).map((category) => category.id))
         setSelectedUnits(
           (productData?.units || []).map((unit) => ({
@@ -82,39 +87,8 @@ export default function EditProduct() {
     [product],
   )
 
-  const toggleCategory = (categoryId) => {
-    setSelectedCategories((prev) =>
-      prev.includes(categoryId)
-        ? prev.filter((idValue) => idValue !== categoryId)
-        : [...prev, categoryId],
-    )
-  }
-
-  const toggleUnit = (unitId) => {
-    setSelectedUnits((prev) => {
-      const exists = prev.some((entry) => entry.unit_id === unitId)
-      if (exists) {
-        return prev.filter((entry) => entry.unit_id !== unitId)
-      }
-      return [...prev, { unit_id: unitId, conversion_multiplier: 1 }]
-    })
-  }
-
-  const updateUnitMultiplier = (unitId, value) => {
-    const parsedValue = Number(value)
-    setSelectedUnits((prev) =>
-      prev.map((entry) =>
-        entry.unit_id === unitId
-          ? {
-              ...entry,
-              conversion_multiplier: Number.isNaN(parsedValue) ? 1 : parsedValue,
-            }
-          : entry,
-      ),
-    )
-  }
-
   const handleUpdateProduct = async (formValues) => {
+    setBanner({ type: "", message: "" })
     setSaving(true)
     try {
       const numericId = Number(id)
@@ -122,14 +96,39 @@ export default function EditProduct() {
         ...formValues,
         base_price: Number(formValues.base_price) || 0,
         base_unit_id: Number(formValues.base_unit_id),
+        status: Number(status) === 0 ? 0 : 1,
         categories: selectedCategories,
         units: selectedUnits,
       })
-      navigate(`/products/${numericId}`)
+      const latestProduct = await window.api.getProductById(numericId)
+      setProduct(latestProduct)
+      setStatus(Number(latestProduct?.status) === 0 ? 0 : 1)
+      setBanner({ type: "success", message: "Product updated successfully." })
     } catch (error) {
       console.error("Failed to update product:", error)
+      setBanner({ type: "error", message: "Failed to update product. Please try again." })
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDeleteProduct = async () => {
+    const shouldDelete = window.confirm(
+      "Delete this product permanently? This will also remove related barcodes and product mappings.",
+    )
+    if (!shouldDelete) return
+
+    setBanner({ type: "", message: "" })
+    setDeletingProduct(true)
+
+    try {
+      await window.api.deleteProduct(Number(id))
+      navigate("/")
+    } catch (error) {
+      console.error("Failed to delete product:", error)
+      setBanner({ type: "error", message: "Failed to delete product. Please try again." })
+    } finally {
+      setDeletingProduct(false)
     }
   }
 
@@ -162,86 +161,63 @@ export default function EditProduct() {
       </div>
 
       <div className="p-6 overflow-y-auto flex-1 space-y-6">
-        <button onClick={() => navigate(`/products/${id}`)} className="pos-btn-secondary">
-          Back to Product Details
-        </button>
+        <Banner
+          type={banner.type}
+          message={banner.message}
+          onClose={() => setBanner({ type: "", message: "" })}
+        />
+
+        <div className="flex flex-wrap gap-3">
+          <button onClick={() => navigate(`/products/${id}`)} className="pos-btn-secondary">
+            Back to Product Details
+          </button>
+          <button
+            onClick={() => navigate(`/barcodes?productId=${id}`)}
+            className="pos-btn-success"
+          >
+            Manage Barcodes
+          </button>
+        </div>
 
         <div className="pos-card p-6">
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h3 className="pos-section-title text-base">Product Status</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Current status:
+                <span
+                  className={`ml-2 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                    status === 1
+                      ? "bg-green-100 text-green-800 border border-green-200"
+                      : "bg-red-100 text-red-800 border border-red-200"
+                  }`}
+                >
+                  {status === 1 ? "Active" : "Inactive"}
+                </span>
+              </p>
+              <p className="text-xs text-gray-500 mt-2">Status is saved when you click Update Product.</p>
+            </div>
             <button
               type="button"
-              className="pos-btn-secondary"
-              onClick={() => setShowCategoryEditor((prev) => !prev)}
+              className={status === 1 ? "pos-btn-warning" : "pos-btn-success"}
+              onClick={() => setStatus((prev) => (prev === 1 ? 0 : 1))}
             >
-              {showCategoryEditor ? "Hide Categories" : "Edit Categories"}
-            </button>
-            <button
-              type="button"
-              className="pos-btn-secondary"
-              onClick={() => setShowUnitEditor((prev) => !prev)}
-            >
-              {showUnitEditor ? "Hide Units" : "Edit Units"}
+              {status === 1 ? "Set Inactive" : "Set Active"}
             </button>
           </div>
-
-          {showCategoryEditor && (
-            <div className="mt-5 border border-slate-200 p-4 bg-slate-50">
-              <h3 className="pos-section-title text-base mb-3">Categories</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {categories.map((category) => (
-                  <label
-                    key={category.id}
-                    className="flex items-center gap-2 border border-slate-200 bg-white p-3"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedCategories.includes(category.id)}
-                      onChange={() => toggleCategory(category.id)}
-                    />
-                    <span className="text-sm">{category.name}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {showUnitEditor && (
-            <div className="mt-5 border border-slate-200 p-4 bg-slate-50">
-              <h3 className="pos-section-title text-base mb-3">Units</h3>
-              <div className="space-y-3">
-                {units.map((unit) => {
-                  const selectedUnit = selectedUnits.find((entry) => entry.unit_id === unit.id)
-                  const isChecked = Boolean(selectedUnit)
-
-                  return (
-                    <div key={unit.id} className="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => toggleUnit(unit.id)}
-                        />
-                        <span>{unit.name} ({unit.symbol})</span>
-                      </label>
-                      <div>
-                        <input
-                          type="number"
-                          step="0.0001"
-                          min="0"
-                          className="pos-input"
-                          disabled={!isChecked}
-                          value={selectedUnit?.conversion_multiplier ?? ""}
-                          onChange={(event) => updateUnitMultiplier(unit.id, event.target.value)}
-                          placeholder="Conversion multiplier"
-                        />
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
         </div>
+
+        <CategorySection
+          categories={categories}
+          selectedCategories={selectedCategories}
+          onChange={setSelectedCategories}
+        />
+
+        <UnitSection
+          units={units}
+          selectedUnits={selectedUnits}
+          onChange={setSelectedUnits}
+        />
 
         <DynamicForm
           schema={formSchema}
@@ -261,6 +237,21 @@ export default function EditProduct() {
             </button>
           }
         />
+
+        <div className="pos-card p-6">
+          <h3 className="pos-section-title text-base text-red-700">Danger Zone</h3>
+          <p className="text-sm text-gray-600 mt-1 mb-4">
+            Permanently delete this product and related product mappings.
+          </p>
+          <button
+            type="button"
+            className="pos-btn-danger"
+            disabled={deletingProduct}
+            onClick={handleDeleteProduct}
+          >
+            {deletingProduct ? "Deleting..." : "Delete Product"}
+          </button>
+        </div>
       </div>
     </div>
   )

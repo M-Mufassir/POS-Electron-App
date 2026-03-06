@@ -27,6 +27,8 @@ const dbPath = path.join(basePath, 'pos.db');
   })
 
   db.serialize(() => {
+    db.run(`PRAGMA foreign_keys = ON`)
+
     db.run(`
       CREATE TABLE IF NOT EXISTS products (
         id INTEGER PRIMARY KEY AUTOINCREMENT,

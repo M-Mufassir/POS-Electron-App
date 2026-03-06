@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import DynamicForm from "../components/DynamicForm"
 
 export default function ProductDetails() {
   const { id } = useParams()
@@ -66,12 +65,26 @@ export default function ProductDetails() {
 
       {/* Main Card */}
       <div className="p-6 overflow-y-auto flex-1">
-      <button
-        onClick={() => navigate("/")}
-        className="pos-btn-secondary mb-6"
-      >
-        Back to Products
-      </button>
+      <div className="mb-6 flex flex-wrap gap-3">
+        <button
+          onClick={() => navigate("/")}
+          className="pos-btn-secondary"
+        >
+          Back to Products
+        </button>
+        <button
+          onClick={() => navigate(`/products/${id}/edit`)}
+          className="pos-btn-primary"
+        >
+          Edit Product
+        </button>
+        <button
+          onClick={() => navigate(`/barcodes?productId=${id}`)}
+          className="pos-btn-success"
+        >
+          Manage Barcodes
+        </button>
+      </div>
       <div className="pos-card p-8 space-y-8">
 
         {/* Basic Info */}
@@ -97,6 +110,19 @@ export default function ProductDetails() {
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
               <p className="text-gray-500 text-sm mb-1">Base Unit</p>
               <p className="text-xl font-bold text-blue-700">{product.base_unit_name}</p>
+            </div>
+
+            <div className="bg-white p-4 rounded-lg border border-gray-200">
+              <p className="text-gray-500 text-sm mb-1">Status</p>
+              <span
+                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                  Number(product.status) === 1
+                    ? "bg-green-100 text-green-800 border border-green-200"
+                    : "bg-red-100 text-red-800 border border-red-200"
+                }`}
+              >
+                {Number(product.status) === 1 ? "Active" : "Inactive"}
+              </span>
             </div>
           </div>
         </div>
