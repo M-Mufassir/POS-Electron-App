@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Banner from "../../components/Banner"
 import AddCategoryCard from "./Components/AddCategoryCard"
+import { useAuth } from "../../context/AuthContext"
 
 function Categories() {
   const [categories, setCategories] = useState([])
@@ -9,6 +10,7 @@ function Categories() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [savingCategory, setSavingCategory] = useState(false)
   const [banner, setBanner] = useState({ type: "", message: "" })
+  const { hasPermission } = useAuth()
 
   const fetchCategories = useCallback(async (showInitialLoading = false) => {
     if (showInitialLoading) {
@@ -86,6 +88,14 @@ function Categories() {
     return (
       <div className="pos-container flex justify-center items-center h-screen">
         <p className="text-lg text-gray-600">Loading categories...</p>
+      </div>
+    )
+  }
+
+  if (!hasPermission("manage_catalog")) {
+    return (
+      <div className="pos-container flex justify-center items-center h-screen">
+        <p className="text-lg text-gray-600">You do not have access to manage categories.</p>
       </div>
     )
   }

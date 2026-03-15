@@ -22,5 +22,23 @@ contextBridge.exposeInMainWorld('api', {
   addBarcode: (barcodeData) => ipcRenderer.invoke('add-barcode', barcodeData),
   updateBarcode: (id, barcode) => ipcRenderer.invoke('update-barcode', { id, barcode }),
   deleteBarcode: (id) => ipcRenderer.invoke('delete-barcode', id),
+
+  createBill: (payload) => ipcRenderer.invoke('create-bill', payload),
+  getBillById: (id) => ipcRenderer.invoke('get-bill-by-id', id),
+  getOpenBills: () => ipcRenderer.invoke('get-open-bills'),
+  getAllBills: () => ipcRenderer.invoke('get-all-bills'),
+  saveBill: (payload) => ipcRenderer.invoke('save-bill', payload),
+  resolveBarcode: (barcode) => ipcRenderer.invoke('resolve-barcode', barcode),
+  cancelBill: (billId) => ipcRenderer.invoke('cancel-bill', billId),
+  deleteBill: (billId) => ipcRenderer.invoke('delete-bill', billId),
+  deleteAllBills: () => ipcRenderer.invoke('delete-all-bills'),
+
+  login: (credentials) => ipcRenderer.invoke('auth-login', credentials),
+  logout: () => ipcRenderer.invoke('auth-logout'),
+  getSession: () => ipcRenderer.invoke('auth-session'),
+  resetPassword: (payload) => ipcRenderer.invoke('auth-reset-password', payload),
+  listUsers: () => ipcRenderer.invoke('auth-users'),
+  createUser: (payload) => ipcRenderer.invoke('auth-create-user', payload),
+  changeOwnPassword: (payload) => ipcRenderer.invoke('auth-change-own-password', payload),
   
 })

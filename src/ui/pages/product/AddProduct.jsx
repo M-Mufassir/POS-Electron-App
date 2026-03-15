@@ -2,12 +2,14 @@ import React, { useEffect, useState } from "react";
 import DynamicForm from '../../components/DynamicForm'
 import { useNavigate } from "react-router-dom";
 import Banner from "../../components/Banner"
+import { useAuth } from "../../context/AuthContext"
 
 function AddProduct() {
     const navigate = useNavigate();
     const [units, setUnits] = useState([])
     const [saving, setSaving] = useState(false)
     const [banner, setBanner] = useState({ type: "", message: "" })
+    const { hasPermission } = useAuth()
     const productFormSchema = [
   {
     name: "name",
@@ -29,6 +31,11 @@ function AddProduct() {
   {
     name: "base_price",
     label: "Price",
+    type: "number",
+  },
+  {
+    name: "stock_base_qty",
+    label: "Stock (Base Unit)",
     type: "number",
   },
   {
@@ -54,6 +61,7 @@ const onSaveProduct = async (product) => {
       description: String(product?.description || "").trim(),
       base_price: Number(product?.base_price),
       base_unit_id: Number(product?.base_unit_id),
+      stock_base_qty: Number(product?.stock_base_qty),
       created_at: product?.created_at || new Date().toISOString(),
     }
 
@@ -67,6 +75,10 @@ const onSaveProduct = async (product) => {
     }
     if (!Number.isFinite(payload.base_unit_id) || payload.base_unit_id <= 0) {
       setBanner({ type: "error", message: "Base unit is required." })
+      return
+    }
+    if (!Number.isFinite(payload.stock_base_qty) || payload.stock_base_qty < 0) {
+      setBanner({ type: "error", message: "Stock must be a valid number." })
       return
     }
 
@@ -91,6 +103,13 @@ const onSaveProduct = async (product) => {
     fetchUnits();
   }, []);
   return (
+    !hasPermission("manage_products") ? (
+    <div className="pos-container flex justify-center items-center h-screen">
+      <div className="text-center">
+        <div className="text-lg text-gray-600">You do not have access to add products.</div>
+      </div>
+    </div>
+    ) : (
     <div className="pos-container">
       <div className="pos-header">
         <div>
@@ -106,7 +125,7 @@ const onSaveProduct = async (product) => {
         onClose={() => setBanner({ type: "", message: "" })}
       />
       <button 
-        onClick={() => navigate("/")} 
+        onClick={() => navigate("/products")} 
         className="pos-btn-secondary mb-6 py-2"
       >
         Back to Products
@@ -114,7 +133,10 @@ const onSaveProduct = async (product) => {
         
         <DynamicForm
           schema={productFormSchema}
-          initialValues={{ created_at: new Date().toISOString().split('T')[0] }}
+          initialValues={{
+            created_at: new Date().toISOString().split('T')[0],
+            stock_base_qty: 0,
+          }}
           title="Create Product"
           subtitle="Add a new product to your inventory"
           submitLabel={saving ? "Saving..." : "Save Product"}
@@ -122,6 +144,7 @@ const onSaveProduct = async (product) => {
         />
       </div>
     </div>
+    )
   )
 }
 

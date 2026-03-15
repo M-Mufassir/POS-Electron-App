@@ -4,6 +4,7 @@ import DynamicForm from "../../components/DynamicForm"
 import Banner from "../../components/Banner"
 import CategorySection from "./components/CategorySection"
 import UnitSection from "./components/UnitSection"
+import { useAuth } from "../../context/AuthContext"
 
 export default function EditProduct() {
   const { id } = useParams()
@@ -19,6 +20,7 @@ export default function EditProduct() {
   const [selectedUnits, setSelectedUnits] = useState([])
   const [status, setStatus] = useState(1)
   const [banner, setBanner] = useState({ type: "", message: "" })
+  const { hasPermission } = useAuth()
 
   useEffect(() => {
     const fetchData = async () => {
@@ -59,6 +61,7 @@ export default function EditProduct() {
       { name: "name", label: "Product Name", type: "text", required: true },
       { name: "code", label: "Product Code", type: "text" },
       { name: "base_price", label: "Base Unit Price", type: "number", required: true },
+      { name: "stock_base_qty", label: "Stock (Base Unit)", type: "number", required: true },
       {
         name: "base_unit_id",
         label: "Base Unit",
@@ -83,6 +86,7 @@ export default function EditProduct() {
       description: product?.description || "",
       base_price: product?.base_price ?? "",
       base_unit_id: product?.base_unit_id ?? "",
+      stock_base_qty: product?.stock_base_qty ?? 0,
     }),
     [product],
   )
@@ -96,6 +100,7 @@ export default function EditProduct() {
         ...formValues,
         base_price: Number(formValues.base_price) || 0,
         base_unit_id: Number(formValues.base_unit_id),
+        stock_base_qty: Number(formValues.stock_base_qty) || 0,
         status: Number(status) === 0 ? 0 : 1,
         categories: selectedCategories,
         units: selectedUnits,
@@ -123,7 +128,7 @@ export default function EditProduct() {
 
     try {
       await window.api.deleteProduct(Number(id))
-      navigate("/")
+      navigate("/products")
     } catch (error) {
       console.error("Failed to delete product:", error)
       setBanner({ type: "error", message: "Failed to delete product. Please try again." })
@@ -140,11 +145,21 @@ export default function EditProduct() {
     )
   }
 
+  if (!hasPermission("manage_products")) {
+    return (
+      <div className="pos-container flex justify-center items-center h-screen">
+        <div className="text-center">
+          <div className="text-lg text-gray-600">You do not have access to edit products.</div>
+        </div>
+      </div>
+    )
+  }
+
   if (!product) {
     return (
       <div className="pos-container flex flex-col items-center justify-center h-screen">
         <p className="text-gray-600 text-lg mb-6">Product not found.</p>
-        <button onClick={() => navigate("/")} className="pos-btn-primary">
+        <button onClick={() => navigate("/products")} className="pos-btn-primary">
           Back to Products
         </button>
       </div>
@@ -238,20 +253,22 @@ export default function EditProduct() {
           }
         />
 
-        <div className="pos-card p-6">
-          <h3 className="pos-section-title text-base text-red-700">Danger Zone</h3>
-          <p className="text-sm text-gray-600 mt-1 mb-4">
-            Permanently delete this product and related product mappings.
-          </p>
-          <button
-            type="button"
-            className="pos-btn-danger"
-            disabled={deletingProduct}
-            onClick={handleDeleteProduct}
-          >
-            {deletingProduct ? "Deleting..." : "Delete Product"}
-          </button>
-        </div>
+        {hasPermission("delete_product") && (
+          <div className="pos-card p-6">
+            <h3 className="pos-section-title text-base text-red-700">Danger Zone</h3>
+            <p className="text-sm text-gray-600 mt-1 mb-4">
+              Permanently delete this product and related product mappings.
+            </p>
+            <button
+              type="button"
+              className="pos-btn-danger"
+              disabled={deletingProduct}
+              onClick={handleDeleteProduct}
+            >
+              {deletingProduct ? "Deleting..." : "Delete Product"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

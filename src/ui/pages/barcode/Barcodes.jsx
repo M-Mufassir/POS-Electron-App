@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import Banner from "../../components/Banner"
+import { useAuth } from "../../context/AuthContext"
 
 function Barcodes() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -15,6 +16,7 @@ function Barcodes() {
   const [editingBarcodeId, setEditingBarcodeId] = useState(null)
   const [form, setForm] = useState({ unit_id: "", barcode: "" })
   const [banner, setBanner] = useState({ type: "", message: "" })
+  const { hasPermission } = useAuth()
 
   const selectedProduct = useMemo(
     () => products.find((product) => String(product.id) === String(selectedProductId)) || null,
@@ -225,6 +227,14 @@ function Barcodes() {
     return (
       <div className="pos-container flex justify-center items-center h-screen">
         <p className="text-lg text-gray-600">Loading products for barcode mapping...</p>
+      </div>
+    )
+  }
+
+  if (!hasPermission("manage_products")) {
+    return (
+      <div className="pos-container flex justify-center items-center h-screen">
+        <p className="text-lg text-gray-600">You do not have access to manage barcodes.</p>
       </div>
     )
   }

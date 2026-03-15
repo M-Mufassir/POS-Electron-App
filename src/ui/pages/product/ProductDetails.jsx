@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
+import { useAuth } from "../../context/AuthContext"
 
 export default function ProductDetails() {
   const { id } = useParams()
@@ -9,6 +10,7 @@ export default function ProductDetails() {
 
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
+  const { hasPermission } = useAuth()
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -43,7 +45,7 @@ export default function ProductDetails() {
         <div className="text-center">
           <p className="text-gray-600 text-lg mb-6">Product not found.</p>
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/products")}
             className="pos-btn-primary"
           >
             Back to Products
@@ -67,23 +69,27 @@ export default function ProductDetails() {
       <div className="p-6 overflow-y-auto flex-1">
       <div className="mb-6 flex flex-wrap gap-3">
         <button
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/products")}
           className="pos-btn-secondary"
         >
           Back to Products
         </button>
-        <button
-          onClick={() => navigate(`/products/${id}/edit`)}
-          className="pos-btn-primary"
-        >
-          Edit Product
-        </button>
-        <button
-          onClick={() => navigate(`/barcodes?productId=${id}`)}
-          className="pos-btn-success"
-        >
-          Manage Barcodes
-        </button>
+        {hasPermission("manage_products") && (
+          <>
+            <button
+              onClick={() => navigate(`/products/${id}/edit`)}
+              className="pos-btn-primary"
+            >
+              Edit Product
+            </button>
+            <button
+              onClick={() => navigate(`/barcodes?productId=${id}`)}
+              className="pos-btn-success"
+            >
+              Manage Barcodes
+            </button>
+          </>
+        )}
       </div>
       <div className="pos-card p-8 space-y-8">
 
@@ -110,6 +116,13 @@ export default function ProductDetails() {
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
               <p className="text-gray-500 text-sm mb-1">Base Unit</p>
               <p className="text-xl font-bold text-blue-700">{product.base_unit_name}</p>
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <p className="text-gray-500 text-sm mb-1">Stock (Base Unit)</p>
+              <p className="text-xl font-bold text-gray-800">
+                {Number(product.stock_base_qty ?? 0).toFixed(2)} {product.base_unit_symbol || ""}
+              </p>
             </div>
 
             <div className="bg-white p-4 rounded-lg border border-gray-200">

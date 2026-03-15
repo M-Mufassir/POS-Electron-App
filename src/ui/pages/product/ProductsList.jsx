@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import Table from "../../components/Table"
+import { useAuth } from "../../context/AuthContext"
 
 export default function ProductsList() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
+  const { hasPermission } = useAuth()
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -37,6 +39,16 @@ export default function ProductsList() {
       <div className="pos-container flex justify-center items-center h-screen">
         <div className="text-center">
           <div className="text-lg text-gray-600">Loading your products...</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!hasPermission("manage_products")) {
+    return (
+      <div className="pos-container flex justify-center items-center h-screen">
+        <div className="text-center">
+          <div className="text-lg text-gray-600">You do not have access to manage products.</div>
         </div>
       </div>
     )

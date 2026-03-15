@@ -1,33 +1,52 @@
-import React, { useState } from "react"
+import React, { useMemo, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
+import { useAuth } from "../context/AuthContext"
 
 const Navbar = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const { user, hasPermission, logout } = useAuth()
 
-  const menuItems = [
+  const menuItems = useMemo(() => [
     {
-      label: "Products",
+      label: "Home",
       path: "/",
     },
     {
-      label: "Add Product",
-      path: "/products/add",
+      label: "Billing",
+      path: "/billing",
+    },
+    {
+      label: "Bills List",
+      path: "/billing/all",
+    },
+    {
+      label: "Products",
+      path: "/products",
+      permission: "manage_products",
     },
     {
       label: "Categories",
       path: "/categories",
+      permission: "manage_catalog",
     },
     {
       label: "Units",
       path: "/units",
+      permission: "manage_catalog",
     },
     {
       label: "Barcodes",
       path: "/barcodes",
+      permission: "manage_products",
     },
-  ]
+    {
+      label: "Admin",
+      path: "/admin",
+      permission: "manage_passwords",
+    },
+  ], [])
 
   const isActive = (path) => location.pathname === path
 
@@ -47,22 +66,35 @@ const Navbar = () => {
       </div>
 
       <ul className="navbar-menu">
-        {menuItems.map((item) => (
-          <li key={item.path}>
-            <button
-              onClick={() => {
-                navigate(item.path)
-                setIsCollapsed(true)
-              }}
-              className={`navbar-link ${isActive(item.path) ? "active" : ""}`}
-            >
-              <span className="navbar-link-label">{item.label}</span>
-            </button>
-          </li>
-        ))}
+        {menuItems
+          .filter((item) => !item.permission || hasPermission(item.permission))
+          .map((item) => (
+            <li key={item.path}>
+              <button
+                onClick={() => {
+                  navigate(item.path)
+                  setIsCollapsed(true)
+                }}
+                className={`navbar-link ${isActive(item.path) ? "active" : ""}`}
+              >
+                <span className="navbar-link-label">{item.label}</span>
+              </button>
+            </li>
+          ))}
       </ul>
 
       <div className="navbar-footer">
+        <div className="mb-4 text-sm text-gray-600">
+          <div>{user?.username || "User"}</div>
+          <div className="text-xs uppercase">{user?.role_name || ""}</div>
+        </div>
+        <button
+          className="navbar-contact-btn"
+          onClick={logout}
+          title="Sign out"
+        >
+          Sign out
+        </button>
         <button
           className="navbar-contact-btn"
           onClick={() => alert("Contact support coming soon")}

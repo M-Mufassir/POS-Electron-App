@@ -1,0 +1,943 @@
+﻿import { useEffect, useMemo, useState } from "react"
+import Banner from "../../components/Banner"
+
+const formatCurrency = (value) => {
+  const amount = Number(value || 0)
+  if (!Number.isFinite(amount)) return "0.00"
+  return amount.toFixed(2)
+}
+
+const buildDraftFromBill = (bill) => {
+  if (!bill) return null
+  const discountType = bill.discount_type || "PERCENTAGE"
+  const discountEnabled = Boolean(bill.discount_type)
+
+  return {
+    id: bill.id,
+    invoice_no: bill.invoice_no,
+    customer_name: bill.customer_name || "",
+    status: bill.status || "OPEN",
+    items: Array.isArray(bill.items) ? bill.items : [],
+    discount_type: discountType,
+    discount_value: Number(bill.discount_value || 0),
+    discount_enabled: discountEnabled,
+    paid_amount: Number(bill.paid_amount || 0),
+  }
+}
+
+const computeTotals = (draft) => {
+  const subtotal = (draft.items || []).reduce((sum, item) => sum + Number(item.subtotal || 0), 0)
+  let discountAmount = 0
+
+  if (draft.discount_enabled) {
+    const value = Number(draft.discount_value || 0)
+    if (draft.discount_type === "PERCENTAGE") {
+      const percent = Math.min(100, Math.max(0, value))
+      discountAmount = subtotal * (percent / 100)
+    } else {
+      discountAmount = Math.min(subtotal, Math.max(0, value))
+    }
+  }
+
+  const total = Math.max(0, subtotal - discountAmount)
+  const paid = Math.max(0, Number(draft.paid_amount || 0))
+  const balance = Math.max(0, total - paid)
+
+  return { subtotal, discountAmount, total, paid, balance }
+}
+
+const BillEditor = ({
+  draft,
+  onDraftChange,
+  onSave,
+  onComplete,
+  onCancel,
+  onDelete,
+  onAfterComplete,
+  products,
+}) => {
+  const [barcodeInput, setBarcodeInput] = useState("")
+  const [productQuery, setProductQuery] = useState("")
+  const [productMatches, setProductMatches] = useState([])
+  const [selectedProduct, setSelectedProduct] = useState(null)
+  const [availableUnits, setAvailableUnits] = useState([])
+  const [selectedUnitId, setSelectedUnitId] = useState("")
+  const [quantity, setQuantity] = useState(1)
+  const [banner, setBanner] = useState({ type: "", message: "" })
+  const [printReceipt, setPrintReceipt] = useState(true)
+  const [receiptState, setReceiptState] = useState({
+    open: false,
+    stage: "idle",
+    data: null,
+  })
+
+  useEffect(() => {
+    const term = productQuery.trim().toLowerCase()
+    if (!term) {
+      setProductMatches([])
+      return
+    }
+    const matches = products
+      .filter((product) => {
+        const name = String(product.name || "").toLowerCase()
+        const code = String(product.code || "").toLowerCase()
+        return name.includes(term) || code.includes(term)
+      })
+      .slice(0, 8)
+    setProductMatches(matches)
+  }, [productQuery, products])
+
+  const totals = useMemo(() => computeTotals(draft), [draft])
+  const selectedUnit = useMemo(
+    () => availableUnits.find((unit) => Number(unit.id) === Number(selectedUnitId)),
+    [availableUnits, selectedUnitId],
+  )
+  const selectedUnitPrice = useMemo(() => {
+    if (!selectedProduct || !selectedUnit) return 0
+    const basePrice = Number(selectedProduct.base_price || 0)
+    const multiplier = Number(selectedUnit.multiplier || 1)
+    return basePrice * multiplier
+  }, [selectedProduct, selectedUnit])
+  const selectedQty = Math.max(0, Number(quantity || 0))
+  const selectedLineTotal = selectedUnitPrice * selectedQty
+
+  const handleSelectProduct = async (product) => {
+    setSelectedProduct(product)
+    setProductQuery(`${product.name}`)
+    setProductMatches([])
+
+    try {
+      const details = await window.api.getProductById(Number(product.id))
+      const baseUnit = {
+        id: details.base_unit_id,
+        name: details.base_unit_name,
+        symbol: details.base_unit_symbol,
+        multiplier: 1,
+      }
+      const extraUnits = (details.units || []).map((unit) => ({
+        id: unit.id,
+        name: unit.name,
+        symbol: unit.symbol,
+        multiplier: Number(unit.conversion_multiplier) || 1,
+      }))
+      const unitOptions = [baseUnit, ...extraUnits]
+      setAvailableUnits(unitOptions)
+      setSelectedUnitId(baseUnit.id)
+    } catch (error) {
+      console.error("Failed to load product units:", error)
+    }
+  }
+
+  const appendItem = (item) => {
+    const existingIndex = draft.items.findIndex(
+      (entry) =>
+        entry.product_id === item.product_id &&
+        entry.unit_id === item.unit_id &&
+        Number(entry.unit_price) === Number(item.unit_price) &&
+        Number(entry.barcode_id || 0) === Number(item.barcode_id || 0),
+    )
+
+    let updatedItems = [...draft.items]
+    if (existingIndex >= 0) {
+      const existing = updatedItems[existingIndex]
+      const newQty = Number(existing.quantity || 0) + Number(item.quantity || 0)
+      const newSubtotal = Number(existing.unit_price || 0) * newQty
+      updatedItems[existingIndex] = {
+        ...existing,
+        quantity: newQty,
+        subtotal: newSubtotal,
+      }
+    } else {
+      updatedItems = [...updatedItems, item]
+    }
+
+    onDraftChange({ ...draft, items: updatedItems })
+    setQuantity(1)
+  }
+
+  const handleAddSelected = () => {
+    if (!selectedProduct || !selectedUnitId) return
+    const unit = availableUnits.find((entry) => Number(entry.id) === Number(selectedUnitId))
+    const multiplier = Number(unit?.multiplier || 1)
+    const basePrice = Number(selectedProduct.base_price || 0)
+    const qty = Number(quantity || 0)
+    if (!Number.isFinite(qty) || qty <= 0) {
+      setBanner({ type: "warning", message: "Enter a quantity greater than 0." })
+      return
+    }
+    const unitPrice = basePrice * multiplier
+
+    appendItem({
+      product_id: selectedProduct.id,
+      product_name: selectedProduct.name,
+      unit_id: Number(selectedUnitId),
+      unit_name: unit?.name,
+      unit_symbol: unit?.symbol,
+      quantity: qty,
+      unit_price: unitPrice,
+      subtotal: unitPrice * qty,
+      barcode_id: null,
+    })
+  }
+
+  const handleBarcodeSubmit = async (event) => {
+    event.preventDefault()
+    setBanner({ type: "", message: "" })
+
+    const code = barcodeInput.trim()
+    if (!code) return
+
+    try {
+      const resolved = await window.api.resolveBarcode(code)
+      if (!resolved) {
+        setBanner({ type: "warning", message: "Barcode not found." })
+        return
+      }
+
+      const qty = Number(quantity || 0)
+      if (!Number.isFinite(qty) || qty <= 0) {
+        setBanner({ type: "warning", message: "Enter a quantity greater than 0." })
+        return
+      }
+
+      appendItem({
+        product_id: resolved.product_id,
+        product_name: resolved.product_name,
+        unit_id: resolved.unit_id,
+        unit_name: resolved.unit_name,
+        unit_symbol: resolved.unit_symbol,
+        quantity: qty,
+        unit_price: resolved.unit_price,
+        subtotal: resolved.unit_price * qty,
+        barcode_id: resolved.barcode_id,
+      })
+
+      setBarcodeInput("")
+    } catch (error) {
+      console.error("Failed to resolve barcode:", error)
+      setBanner({ type: "error", message: "Barcode lookup failed." })
+    }
+  }
+
+  const handleQuantityChange = (index, nextValue) => {
+    const nextQty = Math.max(0, Number(nextValue || 0))
+    const updatedItems = draft.items.map((item, itemIndex) => {
+      if (itemIndex !== index) return item
+      const unitPrice = Number(item.unit_price || 0)
+      return {
+        ...item,
+        quantity: nextQty,
+        subtotal: unitPrice * nextQty,
+      }
+    })
+    onDraftChange({ ...draft, items: updatedItems })
+  }
+
+  const handleRemoveItem = (index) => {
+    const updatedItems = draft.items.filter((_, itemIndex) => itemIndex !== index)
+    onDraftChange({ ...draft, items: updatedItems })
+  }
+
+  const handleComplete = async () => {
+    const completedBill = await onComplete(totals.total)
+    if (!printReceipt) {
+      onAfterComplete?.()
+      return
+    }
+
+    const receiptData = {
+      ...draft,
+      ...completedBill,
+      totals,
+      printed_at: new Date().toISOString(),
+    }
+
+    setReceiptState({ open: true, stage: "loading", data: receiptData })
+
+    setTimeout(() => {
+      setReceiptState((prev) => ({ ...prev, stage: "printing" }))
+      try {
+        window.print()
+      } catch (error) {
+        console.error("Print failed:", error)
+      }
+    }, 300)
+
+    setTimeout(() => {
+      setReceiptState((prev) => ({ ...prev, stage: "done" }))
+    }, 1400)
+
+    setTimeout(() => {
+      setReceiptState({ open: false, stage: "idle", data: null })
+      onAfterComplete?.()
+    }, 2200)
+  }
+
+  const handleCancel = async () => {
+    const confirmCancel = window.confirm("Cancel this bill? It will be marked as cancelled.")
+    if (!confirmCancel) return
+    try {
+      await onCancel()
+    } catch (error) {
+      console.error("Failed to cancel bill:", error)
+      setBanner({ type: "error", message: error?.message || "Failed to cancel bill." })
+    }
+  }
+
+  const handleDelete = async () => {
+    const confirmDelete = window.confirm("Delete this bill? This cannot be undone.")
+    if (!confirmDelete) return
+    try {
+      await onDelete()
+    } catch (error) {
+      console.error("Failed to delete bill:", error)
+      setBanner({ type: "error", message: error?.message || "Failed to delete bill." })
+    }
+  }
+
+  return (
+    <div className="billing-editor">
+      <div className="billing-editor-header">
+        <div>
+          <h2 className="pos-section-title text-base">{draft.invoice_no}</h2>
+          <p className="pos-section-subtitle">Status: {draft.status}</p>
+        </div>
+      </div>
+
+      <Banner
+        type={banner.type}
+        message={banner.message}
+        onClose={() => setBanner({ type: "", message: "" })}
+      />
+
+      <div className="billing-grid">
+        <div className="pos-card compact">
+          <h3 className="pos-section-title text-base">Customer</h3>
+          <div className="pos-form-group">
+            <label className="pos-label">Customer Name</label>
+            <input
+              type="text"
+              className="pos-input"
+              value={draft.customer_name}
+              onChange={(e) => onDraftChange({ ...draft, customer_name: e.target.value })}
+              placeholder="Walk-in customer"
+            />
+          </div>
+        </div>
+
+        <div className="pos-card compact">
+          <h3 className="pos-section-title text-base">Scan Or Search</h3>
+          <form className="billing-scan" onSubmit={handleBarcodeSubmit}>
+            <input
+              type="text"
+              className="pos-input"
+              placeholder="Scan or enter barcode"
+              value={barcodeInput}
+              onChange={(e) => setBarcodeInput(e.target.value)}
+            />
+            <button type="submit" className="pos-btn-primary">
+              Add
+            </button>
+          </form>
+
+          <div className="pos-form-group">
+            <label className="pos-label">Search Products</label>
+            <input
+              type="text"
+              className="pos-input"
+              placeholder="Type product name or code"
+              value={productQuery}
+              onChange={(e) => setProductQuery(e.target.value)}
+            />
+            {productMatches.length > 0 && (
+              <div className="billing-suggestions">
+                {productMatches.map((product) => (
+                  <button
+                    key={product.id}
+                    type="button"
+                    className="billing-suggestion"
+                    onClick={() => handleSelectProduct(product)}
+                  >
+                    <span>{product.name}</span>
+                    <span className="billing-suggestion-code">{product.code || ""}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="billing-inline billing-inline-2">
+            <div className="pos-form-group">
+              <label className="pos-label">Unit</label>
+              <select
+                className="pos-input"
+                value={selectedUnitId}
+                onChange={(e) => setSelectedUnitId(e.target.value)}
+              >
+                <option value="">Select Unit</option>
+                {availableUnits.map((unit) => (
+                  <option key={unit.id} value={unit.id}>
+                    {unit.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="pos-form-group">
+              <label className="pos-label">Quantity</label>
+              <input
+                type="number"
+                min="0"
+                step="any"
+                className="pos-input"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="billing-inline">
+            <div className="pos-form-group">
+              <label className="pos-label">Unit Price</label>
+              <input
+                type="text"
+                className="pos-input billing-readonly"
+                readOnly
+                value={
+                  selectedProduct && selectedUnit
+                    ? `Rs. ${formatCurrency(selectedUnitPrice)}`
+                    : "Select product"
+                }
+              />
+            </div>
+            <div className="pos-form-group">
+              <label className="pos-label">Line Total</label>
+              <input
+                type="text"
+                className="pos-input billing-readonly"
+                readOnly
+                value={
+                  selectedProduct && selectedUnit
+                    ? `Rs. ${formatCurrency(selectedLineTotal)}`
+                    : "Rs. 0.00"
+                }
+              />
+            </div>
+            <div className="pos-form-group">
+              <label className="pos-label">&nbsp;</label>
+              <button
+                type="button"
+                className="pos-btn-primary w-full"
+                onClick={handleAddSelected}
+                disabled={!selectedProduct || !selectedUnitId}
+              >
+                Add Item
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="pos-card compact">
+        <h3 className="pos-section-title text-base">Bill Items</h3>
+        <div className="overflow-x-auto">
+          <table className="pos-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Unit</th>
+                <th>Qty</th>
+                <th>Unit Price</th>
+                <th>Subtotal</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {draft.items.map((item, index) => (
+                <tr key={`${item.product_id}-${index}`}>
+                  <td>{item.product_name}</td>
+                  <td>{item.unit_name || ""}</td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      className="pos-input billing-qty"
+                      value={item.quantity}
+                      onChange={(e) => handleQuantityChange(index, e.target.value)}
+                    />
+                  </td>
+                  <td>Rs. {formatCurrency(item.unit_price)}</td>
+                  <td>Rs. {formatCurrency(item.subtotal)}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className="pos-btn-danger"
+                      onClick={() => handleRemoveItem(index)}
+                    >
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {draft.items.length === 0 && (
+                <tr>
+                  <td colSpan="6" className="text-center text-gray-500 py-6">
+                    No items added yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="billing-summary">
+        <div className="pos-card compact">
+          <h3 className="pos-section-title text-base">Discounts</h3>
+          <div className="billing-discount-toggle">
+            <label className="billing-radio">
+              <input
+                type="radio"
+                name={`discount-${draft.id}`}
+                checked={!draft.discount_enabled}
+                onChange={() => onDraftChange({ ...draft, discount_enabled: false, discount_value: 0 })}
+              />
+              No Discount
+            </label>
+            <label className="billing-radio">
+              <input
+                type="radio"
+                name={`discount-${draft.id}`}
+                checked={draft.discount_enabled}
+                onChange={() => onDraftChange({ ...draft, discount_enabled: true })}
+              />
+              Apply Discount
+            </label>
+          </div>
+
+          {draft.discount_enabled && (
+            <div className="billing-inline">
+              <div className="pos-form-group">
+                <label className="pos-label">Discount Type</label>
+                <select
+                  className="pos-input"
+                  value={draft.discount_type}
+                  onChange={(e) => onDraftChange({ ...draft, discount_type: e.target.value })}
+                >
+                  <option value="PERCENTAGE">Percentage</option>
+                  <option value="AMOUNT">Amount</option>
+                </select>
+              </div>
+              <div className="pos-form-group">
+                <label className="pos-label">Value</label>
+                <input
+                  type="number"
+                  min="0"
+                  className="pos-input"
+                  value={draft.discount_value}
+                  onChange={(e) => onDraftChange({ ...draft, discount_value: e.target.value })}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="pos-card compact billing-totals">
+          <h3 className="pos-section-title text-base">Totals</h3>
+          <div className="billing-total-row">
+            <span>Subtotal</span>
+            <strong>Rs. {formatCurrency(totals.subtotal)}</strong>
+          </div>
+          <div className="billing-total-row">
+            <span>Discount</span>
+            <strong>Rs. {formatCurrency(totals.discountAmount)}</strong>
+          </div>
+          <div className="billing-total-row">
+            <span>Total</span>
+            <strong>Rs. {formatCurrency(totals.total)}</strong>
+          </div>
+          <div className="pos-form-group">
+            <label className="pos-label">Paid Amount</label>
+            <input
+              type="number"
+              min="0"
+              step="any"
+              className="pos-input"
+              value={draft.paid_amount}
+              onChange={(e) => onDraftChange({ ...draft, paid_amount: e.target.value })}
+            />
+          </div>
+          <div className="billing-total-row">
+            <span>Paid</span>
+            <strong>Rs. {formatCurrency(totals.paid)}</strong>
+          </div>
+          <div className="billing-total-row balance">
+            <span>Bill Balance</span>
+            <strong>Rs. {formatCurrency(totals.balance)}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div className="billing-actions">
+        <label className="billing-radio">
+          <input
+            type="checkbox"
+            checked={printReceipt}
+            onChange={(e) => setPrintReceipt(e.target.checked)}
+          />
+          Print receipt after completion
+        </label>
+        <div className="billing-action-buttons">
+          <button className="pos-btn-secondary" onClick={handleCancel}>
+            Cancel Bill
+          </button>
+          <button className="pos-btn-danger" onClick={handleDelete}>
+            Delete Bill
+          </button>
+          <button className="pos-btn-secondary" onClick={onSave}>
+            Save Bill
+          </button>
+          <button className="pos-btn-success" onClick={handleComplete}>
+            Complete Bill
+          </button>
+        </div>
+      </div>
+
+      {receiptState.open && receiptState.data ? (
+        <ReceiptModal stage={receiptState.stage} data={receiptState.data} />
+      ) : null}
+    </div>
+  )
+}
+
+const ReceiptModal = ({ stage, data }) => {
+  const stageText =
+    stage === "done"
+      ? "Print completed"
+      : stage === "printing"
+        ? "Printing receipt..."
+        : "Preparing receipt..."
+
+  return (
+    <div className="receipt-overlay">
+      <div className="receipt-card receipt-slk">
+        <div className={`receipt-status ${stage}`}>{stageText}</div>
+        <div className="receipt-body">
+          <div className="receipt-header">
+            <h3>MR Solutions Supermarket</h3>
+            <p>No. 21, Main Street, Colombo</p>
+            <p>Tel: 011-2345678</p>
+          </div>
+          <div className="receipt-meta-block">
+            <span>Invoice: {data.invoice_no}</span>
+            <span>Date: {data.printed_at ? new Date(data.printed_at).toLocaleString() : ""}</span>
+            <span>Customer: {data.customer_name || "Walk-in"}</span>
+          </div>
+
+          <div className="receipt-items">
+            <div className="receipt-row receipt-head">
+              <span>Item</span>
+              <span>Qty</span>
+              <span>Price</span>
+              <span>Total</span>
+            </div>
+            {(data.items || []).map((item, index) => (
+              <div key={`${item.product_id}-${index}`} className="receipt-row">
+                <span>{item.product_name}</span>
+                <span>{item.quantity}</span>
+                <span>Rs. {formatCurrency(item.unit_price)}</span>
+                <span>Rs. {formatCurrency(item.subtotal)}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="receipt-total">
+            <div className="receipt-row">
+              <span>Subtotal</span>
+              <strong>Rs. {formatCurrency(data?.totals?.subtotal || 0)}</strong>
+            </div>
+            <div className="receipt-row">
+              <span>Discount</span>
+              <strong>Rs. {formatCurrency(data?.totals?.discountAmount || 0)}</strong>
+            </div>
+            <div className="receipt-row">
+              <span>Total</span>
+              <strong>Rs. {formatCurrency(data?.totals?.total || 0)}</strong>
+            </div>
+            <div className="receipt-row">
+              <span>Paid</span>
+              <strong>Rs. {formatCurrency(data?.paid_amount || data?.totals?.total || 0)}</strong>
+            </div>
+            <div className="receipt-row">
+              <span>Balance</span>
+              <strong>Rs. {formatCurrency(data?.balance_amount || 0)}</strong>
+            </div>
+          </div>
+          <div className="receipt-footer">
+            <p>Thank you for shopping with us.</p>
+            <p>Goods once sold are not returnable.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function BillingWorkspace() {
+  const [openBills, setOpenBills] = useState([])
+  const [products, setProducts] = useState([])
+  const [billTabs, setBillTabs] = useState([])
+  const [activeBillId, setActiveBillId] = useState(null)
+  const [billDrafts, setBillDrafts] = useState({})
+  const [loading, setLoading] = useState(true)
+
+  const refreshOpenBills = async () => {
+    const data = await window.api.getOpenBills()
+    setOpenBills(Array.isArray(data) ? data : [])
+  }
+
+  useEffect(() => {
+    const bootstrap = async () => {
+      setLoading(true)
+      try {
+        const [openBillData, productData] = await Promise.all([
+          window.api.getOpenBills(),
+          window.api.getAllProducts(),
+        ])
+        setOpenBills(Array.isArray(openBillData) ? openBillData : [])
+        setProducts(Array.isArray(productData) ? productData : [])
+      } catch (error) {
+        console.error("Failed to load billing workspace:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    bootstrap()
+  }, [])
+
+  const openBillTab = async (billId) => {
+    const id = Number(billId)
+    if (!Number.isFinite(id)) return
+
+    if (!billTabs.includes(id)) {
+      setBillTabs((prev) => [...prev, id])
+    }
+
+    setActiveBillId(id)
+
+    if (!billDrafts[id]) {
+      const bill = await window.api.getBillById(id)
+      if (bill) {
+        setBillDrafts((prev) => ({
+          ...prev,
+          [id]: buildDraftFromBill(bill),
+        }))
+      }
+    }
+  }
+
+  const handleCreateBill = async () => {
+    const newBill = await window.api.createBill({})
+    await refreshOpenBills()
+    await openBillTab(newBill.id)
+  }
+
+  const handleCloseTab = (billId) => {
+    setBillTabs((prev) => {
+      const next = prev.filter((id) => id !== billId)
+      if (activeBillId === billId) {
+        setActiveBillId(next[0] || null)
+      }
+      return next
+    })
+    setBillDrafts((prev) => {
+      const next = { ...prev }
+      delete next[billId]
+      return next
+    })
+  }
+
+  const handleDraftChange = (draft) => {
+    setBillDrafts((prev) => ({
+      ...prev,
+      [draft.id]: draft,
+    }))
+  }
+
+  const handleSaveBill = async (draft) => {
+    const validItems = draft.items.filter((item) => Number(item.quantity || 0) > 0)
+    const payload = {
+      id: draft.id,
+      customer_name: draft.customer_name,
+      discount_type: draft.discount_enabled ? draft.discount_type : null,
+      discount_value: draft.discount_enabled ? draft.discount_value : 0,
+      paid_amount: draft.paid_amount,
+      items: validItems.map((item) => ({
+        product_id: item.product_id,
+        unit_id: item.unit_id,
+        barcode_id: item.barcode_id,
+        quantity: item.quantity,
+      })),
+    }
+
+    await window.api.saveBill(payload)
+    const refreshed = await window.api.getBillById(draft.id)
+    if (refreshed) {
+      setBillDrafts((prev) => ({
+        ...prev,
+        [draft.id]: buildDraftFromBill(refreshed),
+      }))
+    }
+    await refreshOpenBills()
+    return refreshed
+  }
+
+  const handleCompleteBill = async (draft, total) => {
+    const updatedDraft = {
+      ...draft,
+      paid_amount: total,
+    }
+    setBillDrafts((prev) => ({ ...prev, [draft.id]: updatedDraft }))
+    return await handleSaveBill(updatedDraft)
+  }
+
+  const handleCancelBill = async (draft) => {
+    await window.api.cancelBill(draft.id)
+    await refreshOpenBills()
+    handleCloseTab(draft.id)
+  }
+
+  const handleDeleteBill = async (draft) => {
+    await window.api.deleteBill(draft.id)
+    await refreshOpenBills()
+    handleCloseTab(draft.id)
+  }
+
+  if (loading) {
+    return (
+      <div className="pos-container flex justify-center items-center h-screen">
+        <div className="text-center">
+          <div className="text-lg text-gray-600">Loading billing workspace...</div>
+        </div>
+      </div>
+    )
+  }
+
+  const activeDraft = activeBillId ? billDrafts[activeBillId] : null
+
+  return (
+    <div className="pos-container">
+      <div className="pos-header">
+        <div>
+          <h1 className="pos-section-title">Billing Workspace</h1>
+          <p className="pos-section-subtitle">
+            Open bills and new billing in one place
+          </p>
+        </div>
+      </div>
+
+      <div className="billing-layout">
+        <aside className="billing-sidebar">
+          <div className="billing-sidebar-header">
+            <div>
+              <h2 className="pos-section-title text-base">Open Bills</h2>
+              <p className="pos-section-subtitle">Unpaid and partially paid</p>
+            </div>
+            <button className="pos-btn-success" onClick={handleCreateBill}>
+              New Bill
+            </button>
+          </div>
+
+          <div className="billing-card-list">
+            {openBills.map((bill) => {
+              const products = String(bill.product_names || "")
+                .split(",")
+                .map((item) => item.trim())
+                .filter(Boolean)
+                .slice(0, 3)
+
+              return (
+                <button
+                  key={bill.id}
+                  type="button"
+                  className={`billing-card ${activeBillId === bill.id ? "active" : ""}`}
+                  onClick={() => openBillTab(bill.id)}
+                >
+                  <div className="billing-card-header">
+                    <div>
+                      <strong>{bill.customer_name || "Walk-in"}</strong>
+                      <p className="billing-card-meta">{bill.invoice_no}</p>
+                    </div>
+                    <span className={`billing-pill ${bill.status?.toLowerCase()}`}>
+                      {bill.status}
+                    </span>
+                  </div>
+                  <div className="billing-card-body">
+                    <p>Top items:</p>
+                    <div className="billing-card-tags">
+                      {products.length > 0
+                        ? products.map((name, index) => (
+                            <span key={`${bill.id}-prod-${index}`}>{name}</span>
+                          ))
+                        : "No items yet"}
+                    </div>
+                  </div>
+                  <div className="billing-card-footer">
+                    <span>Total: Rs. {formatCurrency(bill.total_amount)}</span>
+                    <span>Balance: Rs. {formatCurrency(bill.balance_amount)}</span>
+                  </div>
+                </button>
+              )
+            })}
+
+            {openBills.length === 0 && (
+              <div className="billing-empty">No open bills right now.</div>
+            )}
+          </div>
+        </aside>
+
+        <section className="billing-panel">
+          <div className="billing-tabs">
+            {billTabs.length === 0 && (
+              <div className="billing-empty">Select a bill to start or create a new bill.</div>
+            )}
+            {billTabs.map((billId) => {
+              const draft = billDrafts[billId]
+              return (
+                <div
+                  key={billId}
+                  className={`billing-tab ${activeBillId === billId ? "active" : ""}`}
+                >
+                  <button type="button" onClick={() => setActiveBillId(billId)}>
+                    {draft?.invoice_no || `Bill ${billId}`}
+                  </button>
+                  <button
+                    type="button"
+                    className="billing-tab-close"
+                    onClick={() => handleCloseTab(billId)}
+                  >
+                    x
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+
+          {activeDraft && (
+            <BillEditor
+              draft={activeDraft}
+              onDraftChange={handleDraftChange}
+              onSave={() => handleSaveBill(activeDraft)}
+              onComplete={(total) => handleCompleteBill(activeDraft, total)}
+              onCancel={() => handleCancelBill(activeDraft)}
+              onDelete={() => handleDeleteBill(activeDraft)}
+              onAfterComplete={() => handleCloseTab(activeDraft.id)}
+              products={products}
+            />
+          )}
+        </section>
+      </div>
+    </div>
+  )
+}

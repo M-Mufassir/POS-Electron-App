@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Banner from "../../components/Banner"
 import AddUnitCard from "./Components/AddUnitCard"
+import { useAuth } from "../../context/AuthContext"
 
 function Units() {
   const [units, setUnits] = useState([])
@@ -9,6 +10,7 @@ function Units() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [savingUnit, setSavingUnit] = useState(false)
   const [banner, setBanner] = useState({ type: "", message: "" })
+  const { hasPermission } = useAuth()
 
   const fetchUnits = useCallback(async (showInitialLoading = false) => {
     if (showInitialLoading) {
@@ -82,6 +84,14 @@ function Units() {
     return (
       <div className="pos-container flex justify-center items-center h-screen">
         <p className="text-lg text-gray-600">Loading units...</p>
+      </div>
+    )
+  }
+
+  if (!hasPermission("manage_catalog")) {
+    return (
+      <div className="pos-container flex justify-center items-center h-screen">
+        <p className="text-lg text-gray-600">You do not have access to manage units.</p>
       </div>
     )
   }
