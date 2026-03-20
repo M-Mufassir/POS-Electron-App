@@ -23,6 +23,10 @@ function App() {
     return <Login />
   }
 
+  if (user.must_reset_password) {
+    return <ResetPassword />
+  }
+
   return (
     <div className="app-layout">
       <Navbar />

@@ -1,4 +1,5 @@
-﻿import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import BillDetailsModal from "./components/BillDetailsModal"
 
 const formatCurrency = (value) => {
@@ -8,11 +9,14 @@ const formatCurrency = (value) => {
 }
 
 export default function BillsList() {
+  const navigate = useNavigate()
   const [bills, setBills] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedBill, setSelectedBill] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
   const [deletingAll, setDeletingAll] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
 
   const fetchBills = async () => {
     setLoading(true)
@@ -29,6 +33,40 @@ export default function BillsList() {
   useEffect(() => {
     fetchBills()
   }, [])
+
+  const filteredBills = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase()
+
+    return bills.filter((bill) => {
+      const matchesSearch =
+        !term ||
+        String(bill.invoice_no || "").toLowerCase().includes(term) ||
+        String(bill.customer_name || "").toLowerCase().includes(term) ||
+        String(bill.status || "").toLowerCase().includes(term)
+
+      const matchesStatus =
+        statusFilter === "all" || String(bill.status || "").toUpperCase() === statusFilter
+
+      return matchesSearch && matchesStatus
+    })
+  }, [bills, searchTerm, statusFilter])
+
+  const billSummary = useMemo(() => {
+    const paidBills = bills.filter((bill) => bill.status === "PAID").length
+    const openBills = bills.filter((bill) => bill.status === "OPEN").length
+    const partialBills = bills.filter((bill) => bill.status === "PARTIAL").length
+    const totalRevenue = bills.reduce((sum, bill) => sum + Number(bill.total_amount || 0), 0)
+    const outstanding = bills.reduce((sum, bill) => sum + Number(bill.balance_amount || 0), 0)
+
+    return {
+      totalBills: bills.length,
+      paidBills,
+      openBills,
+      partialBills,
+      totalRevenue,
+      outstanding,
+    }
+  }, [bills])
 
   const openBillDetails = async (billId) => {
     try {
@@ -88,16 +126,100 @@ export default function BillsList() {
     <div className="pos-container">
       <div className="pos-header">
         <div>
-          <h1 className="pos-section-title">All Bills</h1>
-          <p className="pos-section-subtitle">Invoice history and references</p>
+          <h1 className="pos-section-title">Bills List</h1>
+          <p className="pos-section-subtitle">
+            Search invoice history, monitor outstanding balances, and review bill status quickly.
+          </p>
         </div>
-        <button className="pos-btn-danger" onClick={handleDeleteAll} disabled={deletingAll}>
-          {deletingAll ? "Deleting..." : "Delete All"}
-        </button>
+        <div className="billing-header-actions">
+          <button className="pos-btn-secondary" onClick={() => navigate("/billing")}>
+            Back To Billing
+          </button>
+          <button className="pos-btn-danger" onClick={handleDeleteAll} disabled={deletingAll}>
+            {deletingAll ? "Deleting..." : "Delete All"}
+          </button>
+        </div>
       </div>
 
-      <div className="p-6 flex-1 overflow-hidden">
-        <div className="pos-card overflow-hidden">
+      <div className="page-body">
+        <div className="page-summary-grid">
+          <div className="page-summary-card">
+            <span className="page-summary-label">Total Bills</span>
+            <strong>{billSummary.totalBills}</strong>
+          </div>
+          <div className="page-summary-card success">
+            <span className="page-summary-label">Paid</span>
+            <strong>{billSummary.paidBills}</strong>
+          </div>
+          <div className="page-summary-card warning">
+            <span className="page-summary-label">Open</span>
+            <strong>{billSummary.openBills}</strong>
+          </div>
+          <div className="page-summary-card info">
+            <span className="page-summary-label">Partial</span>
+            <strong>{billSummary.partialBills}</strong>
+          </div>
+          <div className="page-summary-card accent">
+            <span className="page-summary-label">Revenue</span>
+            <strong>Rs. {formatCurrency(billSummary.totalRevenue)}</strong>
+          </div>
+          <div className="page-summary-card danger">
+            <span className="page-summary-label">Outstanding</span>
+            <strong>Rs. {formatCurrency(billSummary.outstanding)}</strong>
+          </div>
+        </div>
+
+        <div className="page-toolbar">
+          <form className="page-search-row" onSubmit={(event) => event.preventDefault()}>
+            <div className="page-search-group">
+              <label className="pos-label">Search Bills</label>
+              <input
+                type="text"
+                className="pos-input"
+                placeholder="Search by invoice, customer, or status"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
+            </div>
+            <div className="page-search-group page-search-filter">
+              <label className="pos-label">Status</label>
+              <select
+                className="pos-input"
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+              >
+                <option value="all">All Statuses</option>
+                <option value="OPEN">Open</option>
+                <option value="PARTIAL">Partial</option>
+                <option value="PAID">Paid</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
+            </div>
+            <div className="page-search-actions">
+              <button type="submit" className="pos-btn-primary">
+                Search
+              </button>
+              <button
+                type="button"
+                className="pos-btn-secondary"
+                onClick={() => {
+                  setSearchTerm("")
+                  setStatusFilter("all")
+                }}
+              >
+                Clear
+              </button>
+            </div>
+          </form>
+
+          <div className="page-toolbar-actions">
+            <div className="page-filter-note">
+              Showing {filteredBills.length} of {bills.length} bills
+            </div>
+          </div>
+        </div>
+
+        <div className="pos-card overflow-hidden flex-1">
           <div className="overflow-x-auto">
             <table className="pos-table">
               <thead>
@@ -113,7 +235,7 @@ export default function BillsList() {
                 </tr>
               </thead>
               <tbody>
-                {bills.map((bill) => (
+                {filteredBills.map((bill) => (
                   <tr key={bill.id} onClick={() => openBillDetails(bill.id)} className="cursor-pointer">
                     <td className="font-semibold">{bill.invoice_no}</td>
                     <td>{bill.customer_name || "Walk-in"}</td>
@@ -137,10 +259,10 @@ export default function BillsList() {
                     </td>
                   </tr>
                 ))}
-                {bills.length === 0 && (
+                {filteredBills.length === 0 && (
                   <tr>
                     <td colSpan="8" className="text-center text-gray-500 py-6">
-                      No bills found yet.
+                      No bills match the current search or filter.
                     </td>
                   </tr>
                 )}

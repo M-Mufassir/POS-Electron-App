@@ -3,6 +3,7 @@ import path from 'path'
 import fs from 'fs'
 import process from 'process'
 import { createRequire } from 'module'
+import { AUTH_ROLE_DEFINITIONS } from "../../shared/authConfig.js"
 
 const require = createRequire(import.meta.url)
 let electronApp = null
@@ -72,6 +73,15 @@ export function initializeDatabase() {
           description TEXT
       )
         `),
+    AUTH_ROLE_DEFINITIONS.forEach((role) => {
+      db.run(
+        `
+          INSERT OR IGNORE INTO roles (name, description)
+          VALUES (?, ?)
+        `,
+        [role.name, role.description],
+      )
+    }),
     db.run(`
         CREATE TABLE IF NOT EXISTS categories(
           id INTEGER PRIMARY KEY AUTOINCREMENT,

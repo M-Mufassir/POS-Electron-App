@@ -268,3 +268,31 @@
 .shadow-md {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
+
+.text-gray-500,
+.text-slate-500 {
+  color: #65727e;
+}
+
+.text-gray-600,
+.text-slate-600 {
+  color: #4f5a65;
+}
+
+.text-gray-700,
+.text-slate-700 {
+  color: #39444f;
+}
+
+.text-gray-900,
+.text-slate-800 {
+  color: #171c22;
+}
+
+.text-amber-900 {
+  color: #7a4c17;
+}
+
+.text-amber-950 {
+  color: #5d3509;
+}

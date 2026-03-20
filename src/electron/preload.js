@@ -1,3 +1,4 @@
+/* global require */
 const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('api', {
@@ -36,9 +37,9 @@ contextBridge.exposeInMainWorld('api', {
   login: (credentials) => ipcRenderer.invoke('auth-login', credentials),
   logout: () => ipcRenderer.invoke('auth-logout'),
   getSession: () => ipcRenderer.invoke('auth-session'),
+  getAuthStatus: () => ipcRenderer.invoke('auth-status'),
   resetPassword: (payload) => ipcRenderer.invoke('auth-reset-password', payload),
   listUsers: () => ipcRenderer.invoke('auth-users'),
   createUser: (payload) => ipcRenderer.invoke('auth-create-user', payload),
   changeOwnPassword: (payload) => ipcRenderer.invoke('auth-change-own-password', payload),
-  
 })

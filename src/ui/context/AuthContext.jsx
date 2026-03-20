@@ -1,16 +1,32 @@
-﻿import { createContext, useContext, useEffect, useMemo, useState } from "react"
+import { createContext, useContext, useEffect, useMemo, useState } from "react"
 
 const AuthContext = createContext(null)
+
+const defaultAuthStatus = {
+  has_users: true,
+  can_use_default_admin: false,
+  default_admin_username: "Admin",
+  default_admin_password: "12345",
+  roles: [],
+}
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [permissions, setPermissions] = useState({})
+  const [authStatus, setAuthStatus] = useState(defaultAuthStatus)
   const [loading, setLoading] = useState(true)
 
-  const loadSession = async () => {
+  const loadAuthState = async () => {
     setLoading(true)
     try {
-      const session = await window.api.getSession()
+      const [session, status] = await Promise.all([window.api.getSession(), window.api.getAuthStatus()])
+
+      setAuthStatus({
+        ...defaultAuthStatus,
+        ...(status || {}),
+        roles: Array.isArray(status?.roles) ? status.roles : [],
+      })
+
       if (session?.user) {
         setUser(session.user)
         setPermissions(session.permissions || {})
@@ -22,13 +38,14 @@ export const AuthProvider = ({ children }) => {
       console.error("Failed to load session:", error)
       setUser(null)
       setPermissions({})
+      setAuthStatus(defaultAuthStatus)
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    loadSession()
+    loadAuthState()
   }, [])
 
   const login = async (credentials) => {
@@ -48,13 +65,15 @@ export const AuthProvider = ({ children }) => {
     () => ({
       user,
       permissions,
+      authStatus,
+      roles: authStatus.roles || [],
       loading,
       login,
       logout,
-      refresh: loadSession,
+      refresh: loadAuthState,
       hasPermission: (perm) => Boolean(permissions?.[perm]),
     }),
-    [user, permissions, loading],
+    [user, permissions, authStatus, loading],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

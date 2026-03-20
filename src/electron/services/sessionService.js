@@ -1,4 +1,4 @@
-﻿import crypto from "crypto"
+import crypto from "crypto"
 
 const sessions = new Map()
 
@@ -37,4 +37,27 @@ export function getSessionBySender(senderId) {
 export function clearSessionBySender(senderId) {
   if (!senderId) return
   sessions.delete(`${senderId}`)
+}
+
+export function replaceSessionUser(senderId, user) {
+  if (!senderId) return null
+
+  const senderKey = `${senderId}`
+  const session = sessions.get(senderKey)
+  if (!session) return null
+
+  const nextSession = {
+    ...session,
+    user,
+  }
+
+  sessions.set(senderKey, nextSession)
+  if (session.token && sessions.has(session.token)) {
+    sessions.set(session.token, {
+      ...sessions.get(session.token),
+      user,
+    })
+  }
+
+  return nextSession
 }

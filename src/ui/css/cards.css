@@ -1,35 +1,28 @@
-/* Card Components - Content Containers */
-
 .pos-card {
-  background: var(--bg-white);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 246, 248, 0.98));
   border: 1px solid var(--border-gray-200);
-  border-radius: 0;
+  border-radius: 24px;
   padding: 1.5rem;
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    background-color 0.15s ease;
+  box-shadow: 0 12px 28px rgba(75, 86, 96, 0.08);
 }
 
 .pos-card:hover {
-  border-color: var(--text-hint);
+  border-color: var(--border-gray-300);
+  box-shadow: 0 16px 30px rgba(75, 86, 96, 0.1);
 }
 
 .pos-card:active {
   border-color: var(--primary);
 }
 
-/* Card with Shadow (Subtle) */
 .pos-card.elevated {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid var(--border-gray-200);
+  box-shadow: 0 18px 34px rgba(75, 86, 96, 0.1);
 }
 
 .pos-card.elevated:hover {
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 20px 38px rgba(75, 86, 96, 0.12);
 }
 
-/* Card Header */
 .pos-card-header {
   padding: 1.5rem;
   border-bottom: 1px solid var(--border-gray-200);
@@ -38,7 +31,7 @@
 
 .pos-card-header h3 {
   margin: 0;
-  color: var(--text-body);
+  color: var(--text-h1);
   font-size: 1.125rem;
   font-weight: var(--fw-bold);
 }
@@ -49,39 +42,35 @@
   font-size: 0.9rem;
 }
 
-/* Card Body */
 .pos-card-body {
   padding: 0;
 }
 
-/* Card Footer */
 .pos-card-footer {
-  padding: 1.5rem;
+  padding: 1.25rem 1.5rem;
   border-top: 1px solid var(--border-gray-200);
   margin: 1.5rem -1.5rem -1.5rem -1.5rem;
-  background: var(--bg-light);
+  background: rgba(232, 235, 239, 0.7);
 }
 
 .pos-card-footer button + button {
   margin-left: 0.5rem;
 }
 
-/* Compact Card */
 .pos-card.compact {
   padding: 1rem;
 }
 
 .pos-card.compact .pos-card-header {
-  padding: 0.75rem;
+  padding: 0.85rem 1rem;
   margin: -1rem -1rem 1rem -1rem;
 }
 
 .pos-card.compact .pos-card-footer {
-  padding: 0.75rem;
+  padding: 0.85rem 1rem;
   margin: 1rem -1rem -1rem -1rem;
 }
 
-/* Card with Border Accent */
 .pos-card.accent-primary {
   border-left: 4px solid var(--primary);
 }
@@ -98,38 +87,34 @@
   border-left: 4px solid var(--warning);
 }
 
-/* Transparent Card */
 .pos-card.transparent {
   background: transparent;
   border: none;
   padding: 0;
+  box-shadow: none;
 }
 
-/* Info Card */
 .pos-card.info {
-  background: #e0f2fe;
-  border: 1px solid #0284c7;
+  background: rgba(91, 102, 112, 0.08);
+  border-color: rgba(91, 102, 112, 0.22);
 }
 
 .pos-card.info-dark {
-  background: #e0f2fe;
-  border-left: 4px solid #0284c7;
+  background: rgba(91, 102, 112, 0.08);
+  border-left: 4px solid var(--primary);
 }
 
-/* Success Card */
 .pos-card.success-card {
-  background: #f0fdf4;
-  border: 1px solid #86efac;
+  background: rgba(86, 120, 109, 0.08);
+  border-color: rgba(86, 120, 109, 0.22);
 }
 
-/* Warning Card */
 .pos-card.warning-card {
-  background: #fffbeb;
-  border: 1px solid #fcd34d;
+  background: rgba(159, 135, 91, 0.08);
+  border-color: rgba(159, 135, 91, 0.22);
 }
 
-/* Error Card */
 .pos-card.error-card {
-  background: #fef2f2;
-  border: 1px solid #fca5a5;
+  background: rgba(140, 101, 108, 0.08);
+  border-color: rgba(140, 101, 108, 0.22);
 }

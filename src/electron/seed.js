@@ -1,5 +1,7 @@
 // seed.js
+import process from "process"
 import { initializeDatabase, getDB } from "./database/db.js"
+import { AUTH_ROLE_DEFINITIONS } from "../shared/authConfig.js"
 
 process.env.NODE_ENV = process.env.NODE_ENV || "development"
 
@@ -10,12 +12,14 @@ db.serialize(() => {
   console.log("Seeding database...")
 
   // --- ROLES ---
-  db.run(`
-    INSERT OR IGNORE INTO roles (name, description) VALUES
-    ('Admin', 'Administrator with full access'),
-    ('Cashier', 'Can sell products and manage orders'),
-    ('Manager', 'Manages inventory and reports')
-  `)
+  AUTH_ROLE_DEFINITIONS.forEach((role) => {
+    db.run(
+      `
+        INSERT OR IGNORE INTO roles (name, description) VALUES (?, ?)
+      `,
+      [role.name, role.description],
+    )
+  })
 
   // // --- USERS ---
   // db.run(`

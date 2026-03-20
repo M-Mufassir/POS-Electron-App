@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 
@@ -8,45 +8,44 @@ const Navbar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const { user, hasPermission, logout } = useAuth()
 
-  const menuItems = useMemo(() => [
-    {
-      label: "Home",
-      path: "/",
-    },
-    {
-      label: "Billing",
-      path: "/billing",
-    },
-    {
-      label: "Bills List",
-      path: "/billing/all",
-    },
-    {
-      label: "Products",
-      path: "/products",
-      permission: "manage_products",
-    },
-    {
-      label: "Categories",
-      path: "/categories",
-      permission: "manage_catalog",
-    },
-    {
-      label: "Units",
-      path: "/units",
-      permission: "manage_catalog",
-    },
-    {
-      label: "Barcodes",
-      path: "/barcodes",
-      permission: "manage_products",
-    },
-    {
-      label: "Admin",
-      path: "/admin",
-      permission: "manage_passwords",
-    },
-  ], [])
+  const menuItems = useMemo(
+    () => [
+      {
+        label: "Home",
+        path: "/",
+      },
+      {
+        label: "Billing",
+        path: "/billing",
+      },
+      {
+        label: "Products",
+        path: "/products",
+        permission: "manage_products",
+      },
+      {
+        label: "Categories",
+        path: "/categories",
+        permission: "manage_catalog",
+      },
+      {
+        label: "Units",
+        path: "/units",
+        permission: "manage_catalog",
+      },
+      {
+        label: "Barcodes",
+        path: "/barcodes",
+        permission: "manage_products",
+      },
+      {
+        label: "Admin",
+        path: "/admin",
+        permission: "manage_users",
+      },
+    ],
+    [],
+  )
 
   const isActive = (path) => location.pathname === path
 
@@ -54,14 +53,14 @@ const Navbar = () => {
     <nav className={`pos-navbar ${isCollapsed ? "collapsed" : ""}`}>
       <div className="navbar-header">
         <div className="navbar-logo">
-          <span className="logo-text">MR Solution</span>
+          <span className="logo-text">ZILLIT | POS</span>
         </div>
         <button
           className="navbar-toggle"
           onClick={() => setIsCollapsed(!isCollapsed)}
           aria-label="Toggle navigation"
         >
-          ≡
+          Menu
         </button>
       </div>
 
@@ -84,15 +83,11 @@ const Navbar = () => {
       </ul>
 
       <div className="navbar-footer">
-        <div className="mb-4 text-sm text-gray-600">
+        <div className="navbar-user-meta">
           <div>{user?.username || "User"}</div>
-          <div className="text-xs uppercase">{user?.role_name || ""}</div>
+          <div className="navbar-user-role">{user?.role_name || ""}</div>
         </div>
-        <button
-          className="navbar-contact-btn"
-          onClick={logout}
-          title="Sign out"
-        >
+        <button className="navbar-contact-btn" onClick={logout} title="Sign out">
           Sign out
         </button>
         <button
@@ -102,7 +97,7 @@ const Navbar = () => {
         >
           Contact
         </button>
-        <p className="footer-poweredby">Powered by MR Solutions</p>
+        <p className="footer-poweredby">Powered by ZILLIT</p>
         <p className="navbar-version">v1.0.0</p>
       </div>
     </nav>

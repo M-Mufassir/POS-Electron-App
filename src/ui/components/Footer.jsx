@@ -1,14 +1,14 @@
-import React from "react";
+import React from "react"
 
 const Footer = () => {
-  const currentYear = new Date().getFullYear();
+  const currentYear = new Date().getFullYear()
 
   return (
     <footer className="pos-footer">
       <div className="footer-content">
         <div className="footer-left">
           <p className="footer-copyright">
-            © {currentYear} MR Solution. All rights reserved.
+            © {currentYear} ZILLIT. All rights reserved.
           </p>
         </div>
 
@@ -19,7 +19,7 @@ const Footer = () => {
         </div>
       </div>
     </footer>
-  );
-};
+  )
+}
 
-export default Footer;
+export default Footer

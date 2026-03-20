@@ -1,9 +1,19 @@
-﻿import { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import Banner from "../../components/Banner"
 import { useAuth } from "../../context/AuthContext"
 
+const getPreferredRoleId = (roles) => {
+  if (!Array.isArray(roles) || roles.length === 0) return ""
+  return String(
+    roles.find((role) => String(role.name || "").toLowerCase() === "cashier")?.id ||
+      roles[0]?.id ||
+      "",
+  )
+}
+
 export default function AdminDashboard() {
-  const { refresh, hasPermission } = useAuth()
+  const { refresh, hasPermission, authStatus, roles, user } = useAuth()
+  const canManageUsers = hasPermission("manage_users")
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [banner, setBanner] = useState({ type: "", message: "" })
@@ -14,9 +24,56 @@ export default function AdminDashboard() {
     username: "",
     email: "",
     password: "",
-    role_id: "2",
+    role_id: "",
     must_reset_password: true,
   })
+
+  useEffect(() => {
+    const nextRoleId = getPreferredRoleId(roles)
+    if (!nextRoleId) return
+
+    const currentRoleExists = roles.some((role) => String(role.id) === String(newUser.role_id))
+    if (currentRoleExists) return
+
+    setNewUser((prev) => ({
+      ...prev,
+      role_id: nextRoleId,
+    }))
+  }, [roles, newUser.role_id])
+
+  useEffect(() => {
+    if (!canManageUsers) {
+      setLoading(false)
+      return
+    }
+
+    let ignore = false
+
+    const bootstrap = async () => {
+      setLoading(true)
+      try {
+        const data = await window.api.listUsers()
+        if (!ignore) {
+          setUsers(Array.isArray(data) ? data : [])
+        }
+      } catch (error) {
+        console.error("Failed to load users:", error)
+        if (!ignore) {
+          setBanner({ type: "error", message: "Failed to load users." })
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false)
+        }
+      }
+    }
+
+    bootstrap()
+
+    return () => {
+      ignore = true
+    }
+  }, [canManageUsers])
 
   const loadUsers = async () => {
     setLoading(true)
@@ -30,10 +87,6 @@ export default function AdminDashboard() {
       setLoading(false)
     }
   }
-
-  useEffect(() => {
-    loadUsers()
-  }, [])
 
   const handleReset = async (userId, password, mustReset) => {
     if (!password) {
@@ -54,7 +107,7 @@ export default function AdminDashboard() {
     }
   }
 
-  if (!hasPermission("manage_passwords")) {
+  if (!canManageUsers) {
     return (
       <div className="pos-container flex justify-center items-center h-screen">
         <div className="text-center">
@@ -79,7 +132,7 @@ export default function AdminDashboard() {
       <div className="pos-header">
         <div>
           <h1 className="pos-section-title">Admin Dashboard</h1>
-          <p className="pos-section-subtitle">Reset passwords for all roles</p>
+          <p className="pos-section-subtitle">Manage users, roles, and password access</p>
         </div>
       </div>
 
@@ -90,45 +143,66 @@ export default function AdminDashboard() {
           onClose={() => setBanner({ type: "", message: "" })}
         />
 
+        {user?.is_bootstrap_admin && (
+          <div className="pos-card mb-4 border border-amber-200 bg-amber-50">
+            <h3 className="text-lg font-semibold text-amber-950">Default Admin Session</h3>
+            <p className="text-sm text-amber-900 mt-1">
+              {authStatus.has_users
+                ? "This temporary session stays active until you sign out. After that, you must use a saved user account."
+                : "You are signed in with the temporary bootstrap admin. It stays available only while there are no saved users in the database."}
+            </p>
+          </div>
+        )}
+
         <div className="pos-card">
           <h3 className="text-lg font-semibold text-slate-800">Change My Password</h3>
-          <p className="text-sm text-slate-500 mt-1 mb-4">Update your own admin password.</p>
-          <div className="flex flex-wrap gap-3">
-            <input
-              type="password"
-              className="pos-input max-w-sm"
-              placeholder="New password"
-              value={selfPassword}
-              onChange={(e) => setSelfPassword(e.target.value)}
-            />
-            <button
-              type="button"
-              className="pos-btn-secondary"
-              disabled={changingSelf}
-              onClick={async () => {
-                if (!selfPassword) {
-                  setBanner({ type: "error", message: "Password is required." })
-                  return
-                }
-                setChangingSelf(true)
-                try {
-                  await window.api.changeOwnPassword({ new_password: selfPassword })
-                  setBanner({ type: "success", message: "Password updated." })
-                  setSelfPassword("")
-                } catch (error) {
-                  console.error("Failed to change password:", error)
-                  setBanner({
-                    type: "error",
-                    message: error?.message || "Failed to change password.",
-                  })
-                } finally {
-                  setChangingSelf(false)
-                }
-              }}
-            >
-              {changingSelf ? "Updating..." : "Update Password"}
-            </button>
-          </div>
+          {user?.is_bootstrap_admin ? (
+            <p className="text-sm text-slate-500 mt-1 mb-4">
+              The default admin password is hardcoded. Create a saved admin user if you need a
+              permanent credential that can be changed.
+            </p>
+          ) : (
+            <>
+              <p className="text-sm text-slate-500 mt-1 mb-4">Update your own password.</p>
+              <div className="flex flex-wrap gap-3">
+                <input
+                  type="password"
+                  className="pos-input max-w-sm"
+                  placeholder="New password"
+                  value={selfPassword}
+                  onChange={(e) => setSelfPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="pos-btn-secondary"
+                  disabled={changingSelf}
+                  onClick={async () => {
+                    if (!selfPassword) {
+                      setBanner({ type: "error", message: "Password is required." })
+                      return
+                    }
+                    setChangingSelf(true)
+                    try {
+                      await window.api.changeOwnPassword({ new_password: selfPassword })
+                      setBanner({ type: "success", message: "Password updated." })
+                      setSelfPassword("")
+                      await refresh()
+                    } catch (error) {
+                      console.error("Failed to change password:", error)
+                      setBanner({
+                        type: "error",
+                        message: error?.message || "Failed to change password.",
+                      })
+                    } finally {
+                      setChangingSelf(false)
+                    }
+                  }}
+                >
+                  {changingSelf ? "Updating..." : "Update Password"}
+                </button>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="pos-card mt-4 overflow-hidden">
@@ -144,8 +218,8 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {users.map((user) => (
-                  <AdminUserRow key={user.id} user={user} onReset={handleReset} />
+                {users.map((entry) => (
+                  <AdminUserRow key={entry.id} user={entry} onReset={handleReset} />
                 ))}
                 {users.length === 0 && (
                   <tr>
@@ -198,9 +272,11 @@ export default function AdminDashboard() {
                 value={newUser.role_id}
                 onChange={(e) => setNewUser((prev) => ({ ...prev, role_id: e.target.value }))}
               >
-                <option value="1">Admin</option>
-                <option value="2">Cashier</option>
-                <option value="3">Manager</option>
+                {roles.map((role) => (
+                  <option key={role.id} value={role.id}>
+                    {role.name}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="pos-form-group">
@@ -221,11 +297,15 @@ export default function AdminDashboard() {
             <button
               type="button"
               className="pos-btn-primary"
-              disabled={creating}
+              disabled={creating || roles.length === 0}
               onClick={async () => {
                 setBanner({ type: "", message: "" })
                 if (!newUser.username || !newUser.password) {
                   setBanner({ type: "error", message: "Username and password are required." })
+                  return
+                }
+                if (!newUser.role_id) {
+                  setBanner({ type: "error", message: "Role is required." })
                   return
                 }
                 setCreating(true)
@@ -242,10 +322,11 @@ export default function AdminDashboard() {
                     username: "",
                     email: "",
                     password: "",
-                    role_id: "2",
+                    role_id: getPreferredRoleId(roles),
                     must_reset_password: true,
                   })
                   await loadUsers()
+                  await refresh()
                 } catch (error) {
                   console.error("Failed to create user:", error)
                   setBanner({

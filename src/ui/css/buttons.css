@@ -1,133 +1,78 @@
-/* Button Styles - Primary, Secondary, Success, Danger */
-
-/* Primary Button */
-.pos-btn-primary {
-  background: var(--primary);
-  color: white;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0;
+.pos-btn-primary,
+.pos-btn-secondary,
+.pos-btn-success,
+.pos-btn-danger,
+.pos-btn-warning {
+  padding: 0.8rem 1.25rem;
+  border-radius: 14px;
   font-weight: var(--fw-semibold);
-  font-size: 0.95rem;
-  letter-spacing: 0.3px;
-  border: none;
+  font-size: 0.92rem;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
   cursor: pointer;
-  transition: background-color 0.15s ease;
+}
+
+.pos-btn-primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #f8fbfd;
+  box-shadow: 0 10px 20px rgba(111, 142, 156, 0.18);
 }
 
 .pos-btn-primary:hover {
-  background: var(--primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 26px rgba(111, 142, 156, 0.24);
 }
 
-.pos-btn-primary:active {
-  background: #1b3a8a;
-  opacity: 0.95;
-}
-
-.pos-btn-primary:disabled {
-  background: var(--text-hint);
+.pos-btn-primary:disabled,
+.pos-btn-secondary:disabled,
+.pos-btn-success:disabled,
+.pos-btn-danger:disabled,
+.pos-btn-warning:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
-  opacity: 0.6;
+  transform: none;
+  box-shadow: none;
 }
 
-/* Secondary Button */
 .pos-btn-secondary {
-  background: var(--bg-white);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(235, 239, 243, 0.96));
   color: var(--text-body);
-  padding: 0.75rem 1.5rem;
-  border-radius: 0;
-  font-weight: var(--fw-semibold);
-  font-size: 0.95rem;
-  letter-spacing: 0.3px;
-  border: 1px solid var(--border-gray-300);
-  cursor: pointer;
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease;
+  border-color: var(--border-gray-300);
 }
 
 .pos-btn-secondary:hover {
-  background: var(--bg-light);
-  border-color: var(--text-muted);
-  color: var(--primary);
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(228, 234, 240, 0.98));
+  border-color: rgba(120, 130, 141, 0.4);
+  color: var(--text-h1);
 }
 
-.pos-btn-secondary:active {
-  background: #f1f5f9;
-}
-
-.pos-btn-secondary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Success Button */
 .pos-btn-success {
-  background: var(--success);
-  color: white;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0;
-  font-weight: 600;
-  font-size: 0.95rem;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
+  background: linear-gradient(135deg, var(--success), var(--success-dark));
+  color: #f7fffc;
+  box-shadow: 0 10px 20px rgba(47, 143, 120, 0.18);
 }
 
 .pos-btn-success:hover {
-  background: var(--success-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 24px rgba(47, 143, 120, 0.24);
 }
 
-.pos-btn-success:active {
-  opacity: 0.95;
-}
-
-.pos-btn-success:disabled {
-  background: var(--text-hint);
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-/* Danger Button */
 .pos-btn-danger {
-  background: var(--danger);
-  color: white;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0;
-  font-weight: 600;
-  font-size: 0.95rem;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
+  background: linear-gradient(135deg, var(--danger), var(--danger-dark));
+  color: #fff8f9;
+  box-shadow: 0 10px 20px rgba(155, 102, 112, 0.18);
 }
 
 .pos-btn-danger:hover {
-  background: var(--danger-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 24px rgba(155, 102, 112, 0.24);
 }
 
-.pos-btn-danger:active {
-  opacity: 0.95;
-}
-
-.pos-btn-danger:disabled {
-  background: var(--text-hint);
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-/* Warning Button */
 .pos-btn-warning {
-  background: var(--warning);
-  color: white;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0;
-  font-weight: 600;
-  font-size: 0.95rem;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
+  background: linear-gradient(135deg, var(--warning), var(--warning-dark));
+  color: #fff9f0;
 }
 
 .pos-btn-warning:hover {
-  background: var(--warning-dark);
+  transform: translateY(-1px);
 }

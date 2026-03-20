@@ -2,59 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
-/**
- * ============================================
- * MAIN THEME FILE - Professional Light POS
- * ============================================
- * 
- * This file contains ONLY theme variables.
- * Component styles are in separate CSS files.
- * 
- * EDIT GUIDE:
- * - Colors/Fonts: This file
- * - Buttons: buttons.css
- * - Forms: forms.css
- * - Tables: tables.css
- * - Navbar: navbar.css
- * - Cards: cards.css
- * - Layout: layout.css
- * - Utilities: utilities.css
- * ============================================
- */
-
-/* ========= THEME VARIABLES ========= */
 :root {
-  /* Brand Colors */
-  --primary: #2563eb;
-  --primary-dark: #1d4ed8;
-  --primary-light: #3b82f6;
+  --primary: #5b6670;
+  --primary-dark: #474f57;
+  --primary-light: #7d8791;
 
-  /* Status Colors */
-  --success: #16a34a;
-  --success-dark: #15803d;
-  --warning: #ca8a04;
-  --warning-dark: #b8860b;
-  --danger: #dc2626;
-  --danger-dark: #991b1b;
+  --success: #56786d;
+  --success-dark: #456056;
+  --warning: #9f875b;
+  --warning-dark: #816d49;
+  --danger: #8c656c;
+  --danger-dark: #725158;
 
-  /* Background & Text */
-  --bg-light: #f8fafc;
-  --bg-white: #ffffff;
+  --bg-light: #e8ebef;
+  --bg-white: #f7f8fa;
+  --bg-elevated: #ffffff;
+  --bg-soft: #d8dde3;
 
-  /* Text Colors - Clear Typography Hierarchy */
-  --text-h1: #0f172a;
-  --text-h2: #1e293b;
-  --text-h3: #1e293b;
-  --text-body: #1e293b;
-  --text-label: #475569;
-  --text-muted: #64748b;
-  --text-hint: #94a3b8;
+  --text-h1: #15191d;
+  --text-h2: #1e252c;
+  --text-h3: #252d35;
+  --text-body: #2b333c;
+  --text-label: #44505b;
+  --text-muted: #62707d;
+  --text-hint: #8994a0;
 
-  /* Borders */
-  --border-gray-200: #e2e8f0;
-  --border-gray-300: #cbd5e1;
+  --border-gray-200: #d3d8de;
+  --border-gray-300: #c0c8d1;
 
-  /* Font Weights */
   --fw-light: 300;
   --fw-normal: 400;
   --fw-medium: 500;
@@ -62,25 +37,43 @@
   --fw-bold: 700;
 }
 
-/* ========= BASE STYLES ========= */
 * {
-  transition: all 0.15s ease;
+  box-sizing: border-box;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+html,
+body,
+#root {
+  height: 100%;
 }
 
 html,
 body {
-  background: var(--bg-light);
+  background:
+    radial-gradient(circle at top left, rgba(91, 102, 112, 0.12), transparent 24%),
+    radial-gradient(circle at bottom right, rgba(86, 120, 109, 0.08), transparent 20%),
+    var(--bg-light);
   color: var(--text-body);
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
-    "Cantarell", sans-serif;
+  font-family: "Bahnschrift", "Segoe UI Variable Text", "Segoe UI", "Helvetica Neue", sans-serif;
   font-weight: var(--fw-normal);
   margin: 0;
   padding: 0;
   overflow: hidden;
 }
 
-/* Typography Hierarchy */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
 h1,
 h2,
 h3,
@@ -92,41 +85,37 @@ h6 {
 }
 
 h1 {
-  font-size: 1.875rem;
+  font-size: 1.9rem;
   color: var(--text-h1);
-  font-weight: var(--fw-bold);
-  letter-spacing: 0.5px;
+  letter-spacing: -0.02em;
 }
 
 h2 {
-  font-size: 1.5rem;
+  font-size: 1.45rem;
   color: var(--text-h2);
-  font-weight: var(--fw-bold);
-  letter-spacing: 0.4px;
+  letter-spacing: -0.01em;
 }
 
 h3 {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   color: var(--text-h3);
-  font-weight: var(--fw-semibold);
-  letter-spacing: 0.3px;
 }
 
 p {
   color: var(--text-body);
   font-weight: var(--fw-normal);
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 label {
   color: var(--text-label);
   font-weight: var(--fw-medium);
-  letter-spacing: 0.2px;
+  letter-spacing: 0.02em;
 }
 
-/* Scrollbar Styling */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
@@ -134,10 +123,13 @@ label {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-gray-300);
-  border-radius: 0;
+  background: linear-gradient(180deg, #b8c0c8, #a5b0ba);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+  background: linear-gradient(180deg, #9faab5, #8d98a4);
+  background-clip: padding-box;
 }

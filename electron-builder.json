@@ -1,6 +1,6 @@
 {
     "appId": "com.pos-app.id",
-    "productName": "POS-Electron-App",
+    "productName": "ZILLIT POS",
     
     "files": [
         "dist-react/**/*",

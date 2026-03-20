@@ -1,4 +1,5 @@
-﻿import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import Banner from "../../components/Banner"
 
 const formatCurrency = (value) => {
@@ -100,6 +101,15 @@ const BillEditor = ({
   }, [selectedProduct, selectedUnit])
   const selectedQty = Math.max(0, Number(quantity || 0))
   const selectedLineTotal = selectedUnitPrice * selectedQty
+  const editorSummary = useMemo(
+    () => ({
+      items: draft.items.length,
+      subtotal: totals.subtotal,
+      total: totals.total,
+      balance: totals.balance,
+    }),
+    [draft.items.length, totals],
+  )
 
   const handleSelectProduct = async (product) => {
     setSelectedProduct(product)
@@ -126,6 +136,34 @@ const BillEditor = ({
     } catch (error) {
       console.error("Failed to load product units:", error)
     }
+  }
+
+  const handleFindProduct = async () => {
+    const selectedMatch =
+      productMatches[0] ||
+      products.find((product) => {
+        const term = productQuery.trim().toLowerCase()
+        if (!term) return false
+        return (
+          String(product.name || "").toLowerCase() === term ||
+          String(product.code || "").toLowerCase() === term
+        )
+      })
+
+    if (!selectedMatch) {
+      setBanner({ type: "warning", message: "No matching product found." })
+      return
+    }
+
+    await handleSelectProduct(selectedMatch)
+  }
+
+  const handleClearProductSelection = () => {
+    setProductQuery("")
+    setProductMatches([])
+    setSelectedProduct(null)
+    setAvailableUnits([])
+    setSelectedUnitId("")
   }
 
   const appendItem = (item) => {
@@ -304,6 +342,25 @@ const BillEditor = ({
         </div>
       </div>
 
+      <div className="billing-ops-summary">
+        <div className="page-summary-card">
+          <span className="page-summary-label">Line Items</span>
+          <strong>{editorSummary.items}</strong>
+        </div>
+        <div className="page-summary-card info">
+          <span className="page-summary-label">Subtotal</span>
+          <strong>Rs. {formatCurrency(editorSummary.subtotal)}</strong>
+        </div>
+        <div className="page-summary-card accent">
+          <span className="page-summary-label">Bill Total</span>
+          <strong>Rs. {formatCurrency(editorSummary.total)}</strong>
+        </div>
+        <div className="page-summary-card danger">
+          <span className="page-summary-label">Outstanding</span>
+          <strong>Rs. {formatCurrency(editorSummary.balance)}</strong>
+        </div>
+      </div>
+
       <Banner
         type={banner.type}
         message={banner.message}
@@ -342,28 +399,42 @@ const BillEditor = ({
 
           <div className="pos-form-group">
             <label className="pos-label">Search Products</label>
-            <input
-              type="text"
-              className="pos-input"
-              placeholder="Type product name or code"
-              value={productQuery}
-              onChange={(e) => setProductQuery(e.target.value)}
-            />
-            {productMatches.length > 0 && (
-              <div className="billing-suggestions">
-                {productMatches.map((product) => (
-                  <button
-                    key={product.id}
-                    type="button"
-                    className="billing-suggestion"
-                    onClick={() => handleSelectProduct(product)}
-                  >
-                    <span>{product.name}</span>
-                    <span className="billing-suggestion-code">{product.code || ""}</span>
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="billing-product-search">
+              <input
+                type="text"
+                className="pos-input"
+                placeholder="Type product name or code"
+                value={productQuery}
+                onChange={(e) => setProductQuery(e.target.value)}
+              />
+              {productMatches.length > 0 && (
+                <div className="billing-suggestions">
+                  {productMatches.map((product) => (
+                    <button
+                      key={product.id}
+                      type="button"
+                      className="billing-suggestion"
+                      onClick={() => handleSelectProduct(product)}
+                    >
+                      <span>{product.name}</span>
+                      <span className="billing-suggestion-code">{product.code || ""}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="page-search-actions billing-search-actions">
+              <button type="button" className="pos-btn-primary" onClick={handleFindProduct}>
+                Find Product
+              </button>
+              <button
+                type="button"
+                className="pos-btn-secondary"
+                onClick={handleClearProductSelection}
+              >
+                Clear
+              </button>
+            </div>
           </div>
 
           <div className="billing-inline billing-inline-2">
@@ -624,7 +695,8 @@ const ReceiptModal = ({ stage, data }) => {
         <div className={`receipt-status ${stage}`}>{stageText}</div>
         <div className="receipt-body">
           <div className="receipt-header">
-            <h3>MR Solutions Supermarket</h3>
+            <h3>Anver Stores</h3>
+            <p>ZILLIT | POS</p>
             <p>No. 21, Main Street, Colombo</p>
             <p>Tel: 011-2345678</p>
           </div>
@@ -684,12 +756,14 @@ const ReceiptModal = ({ stage, data }) => {
 }
 
 export default function BillingWorkspace() {
+  const navigate = useNavigate()
   const [openBills, setOpenBills] = useState([])
   const [products, setProducts] = useState([])
   const [billTabs, setBillTabs] = useState([])
   const [activeBillId, setActiveBillId] = useState(null)
   const [billDrafts, setBillDrafts] = useState({})
   const [loading, setLoading] = useState(true)
+  const [openBillSearch, setOpenBillSearch] = useState("")
 
   const refreshOpenBills = async () => {
     const data = await window.api.getOpenBills()
@@ -715,6 +789,36 @@ export default function BillingWorkspace() {
 
     bootstrap()
   }, [])
+
+  const filteredOpenBills = useMemo(() => {
+    const term = openBillSearch.trim().toLowerCase()
+    if (!term) return openBills
+
+    return openBills.filter((bill) => {
+      return (
+        String(bill.invoice_no || "").toLowerCase().includes(term) ||
+        String(bill.customer_name || "").toLowerCase().includes(term) ||
+        String(bill.product_names || "").toLowerCase().includes(term) ||
+        String(bill.status || "").toLowerCase().includes(term)
+      )
+    })
+  }, [openBills, openBillSearch])
+
+  const openBillSummary = useMemo(() => {
+    const partialBills = openBills.filter((bill) => bill.status === "PARTIAL").length
+    const openOnlyBills = openBills.filter((bill) => bill.status === "OPEN").length
+    const outstandingAmount = openBills.reduce(
+      (sum, bill) => sum + Number(bill.balance_amount || 0),
+      0,
+    )
+
+    return {
+      totalOpen: openBills.length,
+      openOnlyBills,
+      partialBills,
+      outstandingAmount,
+    }
+  }, [openBills])
 
   const openBillTab = async (billId) => {
     const id = Number(billId)
@@ -835,6 +939,11 @@ export default function BillingWorkspace() {
             Open bills and new billing in one place
           </p>
         </div>
+        <div className="billing-header-actions">
+          <button className="pos-btn-secondary" onClick={() => navigate("/billing/all")}>
+            Bills List
+          </button>
+        </div>
       </div>
 
       <div className="billing-layout">
@@ -849,8 +958,49 @@ export default function BillingWorkspace() {
             </button>
           </div>
 
+          <div className="billing-sidebar-summary">
+            <div className="page-summary-card">
+              <span className="page-summary-label">Open Queue</span>
+              <strong>{openBillSummary.totalOpen}</strong>
+            </div>
+            <div className="page-summary-card warning">
+              <span className="page-summary-label">Open</span>
+              <strong>{openBillSummary.openOnlyBills}</strong>
+            </div>
+            <div className="page-summary-card info">
+              <span className="page-summary-label">Partial</span>
+              <strong>{openBillSummary.partialBills}</strong>
+            </div>
+            <div className="page-summary-card danger">
+              <span className="page-summary-label">Outstanding</span>
+              <strong>Rs. {formatCurrency(openBillSummary.outstandingAmount)}</strong>
+            </div>
+          </div>
+
+          <form className="billing-sidebar-search" onSubmit={(event) => event.preventDefault()}>
+            <input
+              type="text"
+              className="pos-input"
+              placeholder="Search invoice, customer, or item"
+              value={openBillSearch}
+              onChange={(event) => setOpenBillSearch(event.target.value)}
+            />
+            <div className="page-search-actions billing-search-actions">
+              <button type="submit" className="pos-btn-primary">
+                Search
+              </button>
+              <button
+                type="button"
+                className="pos-btn-secondary"
+                onClick={() => setOpenBillSearch("")}
+              >
+                Clear
+              </button>
+            </div>
+          </form>
+
           <div className="billing-card-list">
-            {openBills.map((bill) => {
+            {filteredOpenBills.map((bill) => {
               const products = String(bill.product_names || "")
                 .split(",")
                 .map((item) => item.trim())
@@ -891,7 +1041,7 @@ export default function BillingWorkspace() {
               )
             })}
 
-            {openBills.length === 0 && (
+            {filteredOpenBills.length === 0 && (
               <div className="billing-empty">No open bills right now.</div>
             )}
           </div>

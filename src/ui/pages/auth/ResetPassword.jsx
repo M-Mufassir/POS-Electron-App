@@ -1,8 +1,10 @@
-﻿import { useState } from "react"
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import Banner from "../../components/Banner"
 import { useAuth } from "../../context/AuthContext"
 
 export default function ResetPassword() {
+  const navigate = useNavigate()
   const { refresh, logout } = useAuth()
   const [form, setForm] = useState({ password: "", confirm: "" })
   const [banner, setBanner] = useState({ type: "", message: "" })
@@ -12,8 +14,8 @@ export default function ResetPassword() {
     event.preventDefault()
     setBanner({ type: "", message: "" })
 
-    if (!form.password || form.password.length < 6) {
-      setBanner({ type: "error", message: "Password must be at least 6 characters." })
+    if (!form.password || form.password.length < 5) {
+      setBanner({ type: "error", message: "Password must be at least 5 characters." })
       return
     }
     if (form.password !== form.confirm) {
@@ -26,6 +28,7 @@ export default function ResetPassword() {
       await window.api.changeOwnPassword({ new_password: form.password })
       await refresh()
       setBanner({ type: "success", message: "Password updated successfully." })
+      navigate("/", { replace: true })
     } catch (error) {
       console.error("Failed to reset password:", error)
       setBanner({ type: "error", message: error?.message || "Failed to reset password." })
@@ -38,7 +41,7 @@ export default function ResetPassword() {
     <div className="pos-container flex items-center justify-center h-screen">
       <div className="pos-card w-full max-w-md">
         <h2 className="pos-section-title">Reset Password</h2>
-        <p className="pos-section-subtitle">Administrator must reset the default password</p>
+        <p className="pos-section-subtitle">You must set a new password before continuing.</p>
         <Banner
           type={banner.type}
           message={banner.message}

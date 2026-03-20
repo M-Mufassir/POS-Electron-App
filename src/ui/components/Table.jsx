@@ -1,6 +1,13 @@
 import React from "react"
 
-function Table({ data = [], tableSchema = [], onRowClick, onActionClick, actionLabel = "View" }) {
+function Table({
+  data = [],
+  tableSchema = [],
+  onRowClick,
+  onActionClick,
+  actionLabel = "View",
+  emptyMessage = "No records found.",
+}) {
 
   const handleRowClicked = (id) => {
     if (onRowClick) {
@@ -74,11 +81,15 @@ function Table({ data = [], tableSchema = [], onRowClick, onActionClick, actionL
                   // Handle Normal Columns
                   return (
                     <td key={col.key} className="text-gray-700 font-medium">
-                      {col.type === "number" 
-                        ? typeof row[col.key] === "number" 
-                          ? `$${row[col.key].toFixed(2)}`
+                      {col.type === "currency"
+                        ? typeof row[col.key] === "number"
+                          ? `Rs. ${row[col.key].toFixed(2)}`
                           : row[col.key] ?? "-"
-                        : row[col.key] ?? "-"
+                        : col.type === "number"
+                          ? typeof row[col.key] === "number"
+                            ? row[col.key].toFixed(2)
+                            : row[col.key] ?? "-"
+                          : row[col.key] ?? "-"
                       }
                     </td>
                   )
@@ -92,7 +103,7 @@ function Table({ data = [], tableSchema = [], onRowClick, onActionClick, actionL
                   colSpan={tableSchema.length}
                   className="text-center py-8 text-gray-500 font-medium"
                 >
-                  No products found. Add one to get started!
+                  {emptyMessage}
                 </td>
               </tr>
             )}
