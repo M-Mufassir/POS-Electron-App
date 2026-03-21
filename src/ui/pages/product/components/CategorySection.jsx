@@ -1,11 +1,16 @@
-import React, { useMemo, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 
 export default function CategorySection({
   categories = [],
   selectedCategories = [],
+  defaultOpen = false,
   onChange,
 }) {
-  const [showEditor, setShowEditor] = useState(false)
+  const [showEditor, setShowEditor] = useState(defaultOpen)
+
+  useEffect(() => {
+    setShowEditor(defaultOpen)
+  }, [defaultOpen])
 
   const selectedSet = useMemo(() => new Set(selectedCategories), [selectedCategories])
 
@@ -52,4 +57,3 @@ export default function CategorySection({
     </div>
   )
 }
-
