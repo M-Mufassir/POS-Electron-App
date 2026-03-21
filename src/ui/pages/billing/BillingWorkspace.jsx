@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import Banner from "../../components/Banner"
+import { useAuth } from "../../context/AuthContext"
+import { formatAppDateTime } from "../../utils/dateTime"
 
 const formatCurrency = (value) => {
   const amount = Number(value || 0)
@@ -23,6 +25,7 @@ const buildDraftFromBill = (bill) => {
     discount_value: Number(bill.discount_value || 0),
     discount_enabled: discountEnabled,
     paid_amount: Number(bill.paid_amount || 0),
+    inventory_applied: Number(bill.inventory_applied || 0),
   }
 }
 
@@ -102,7 +105,7 @@ const ReceiptModal = ({ stage, data }) => {
           </div>
           <div className="receipt-meta-block">
             <span>Invoice: {data.invoice_no}</span>
-            <span>Date: {data.printed_at ? new Date(data.printed_at).toLocaleString() : ""}</span>
+            <span>Date: {data.printed_at ? formatAppDateTime(data.printed_at) : ""}</span>
             <span>Customer: {data.customer_name || "Walk-in"}</span>
           </div>
 
@@ -168,6 +171,7 @@ const BillEditor = ({
   onDelete,
   onAfterComplete,
   products,
+  canDeleteBill,
 }) => {
   const [barcodeInput, setBarcodeInput] = useState("")
   const [productQuery, setProductQuery] = useState("")
@@ -239,6 +243,9 @@ const BillEditor = ({
     }),
     [draft.items.length, totals],
   )
+  const isInventoryLocked = Number(draft.inventory_applied || 0) === 1
+  const canCancelBill = !isInventoryLocked && String(draft.status || "OPEN").toUpperCase() !== "PAID"
+  const canDeleteCurrentBill = canDeleteBill && !isInventoryLocked
 
   const focusBarcodeInput = () => {
     window.setTimeout(() => {
@@ -352,6 +359,10 @@ const BillEditor = ({
   }
 
   const handleAddSelected = () => {
+    if (isInventoryLocked) {
+      setBanner({ type: "warning", message: "Inventory is already applied. Items cannot be changed on this bill." })
+      return
+    }
     if (!selectedProduct || !selectedUnitId) return
     const unit = availableUnits.find((entry) => Number(entry.id) === Number(selectedUnitId))
     const multiplier = Number(unit?.multiplier || 1)
@@ -382,6 +393,11 @@ const BillEditor = ({
   const handleBarcodeSubmit = async (event) => {
     event.preventDefault()
     setBanner({ type: "", message: "" })
+
+    if (isInventoryLocked) {
+      setBanner({ type: "warning", message: "Inventory is already applied. Items cannot be changed on this bill." })
+      return
+    }
 
     const code = barcodeInput.trim()
     if (!code) return
@@ -424,6 +440,10 @@ const BillEditor = ({
   }
 
   const handleQuantityChange = (index, nextValue) => {
+    if (isInventoryLocked) {
+      setBanner({ type: "warning", message: "Inventory is already applied. Items cannot be changed on this bill." })
+      return
+    }
     const nextQty = Math.max(0, Number(nextValue || 0))
     const updatedItems = draft.items.map((item, itemIndex) => {
       if (itemIndex !== index) return item
@@ -438,8 +458,24 @@ const BillEditor = ({
   }
 
   const handleRemoveItem = (index) => {
+    if (isInventoryLocked) {
+      setBanner({ type: "warning", message: "Inventory is already applied. Items cannot be changed on this bill." })
+      return
+    }
     const updatedItems = draft.items.filter((_, itemIndex) => itemIndex !== index)
     onDraftChange({ ...draft, items: updatedItems })
+  }
+
+  const handleSave = async () => {
+    try {
+      const savedBill = await onSave()
+      if (savedBill) {
+        setBanner({ type: "success", message: "Bill saved successfully." })
+      }
+    } catch (error) {
+      console.error("Failed to save bill:", error)
+      setBanner({ type: "error", message: error?.message || "Failed to save bill." })
+    }
   }
 
   const handleComplete = async () => {
@@ -641,6 +677,7 @@ const BillEditor = ({
             type="button"
             className="pos-btn-secondary"
             onClick={handleClearProductSelection}
+            disabled={isInventoryLocked}
           >
             Clear
           </button>
@@ -669,6 +706,7 @@ const BillEditor = ({
                       placeholder="Scan or enter barcode"
                       value={barcodeInput}
                       onChange={(e) => setBarcodeInput(e.target.value)}
+                      disabled={isInventoryLocked}
                     />
                   </form>
                 </td>
@@ -682,8 +720,9 @@ const BillEditor = ({
                       value={productQuery}
                       onChange={(e) => setProductQuery(e.target.value)}
                       onKeyDown={handleProductSearchKeyDown}
+                      disabled={isInventoryLocked}
                     />
-                      {productMatches.length > 0 && (
+                      {productMatches.length > 0 && !isInventoryLocked && (
                         <div className="billing-suggestions">
                           {productMatches.map((product, index) => (
                             <button
@@ -710,6 +749,7 @@ const BillEditor = ({
                     value={selectedUnitId}
                     onChange={(e) => setSelectedUnitId(e.target.value)}
                     onKeyDown={handleUnitSelectKeyDown}
+                    disabled={isInventoryLocked}
                   >
                     <option value="">Select Unit</option>
                     {availableUnits.map((unit) => (
@@ -729,6 +769,7 @@ const BillEditor = ({
                     value={quantity}
                     onChange={(e) => setQuantity(e.target.value)}
                     onKeyDown={handleQuantityKeyDown}
+                    disabled={isInventoryLocked}
                   />
                 </td>
                 <td className="billing-entry-cell-strong">
@@ -746,7 +787,7 @@ const BillEditor = ({
                     type="button"
                     className="pos-btn-primary w-full"
                     onClick={handleAddSelected}
-                    disabled={!selectedProduct || !selectedUnitId}
+                    disabled={isInventoryLocked || !selectedProduct || !selectedUnitId}
                   >
                     Add
                   </button>
@@ -765,6 +806,7 @@ const BillEditor = ({
                       className="pos-input billing-qty"
                       value={item.quantity}
                       onChange={(e) => handleQuantityChange(index, e.target.value)}
+                      disabled={isInventoryLocked}
                     />
                   </td>
                   <td>Rs. {formatCurrency(item.unit_price)}</td>
@@ -774,6 +816,7 @@ const BillEditor = ({
                       type="button"
                       className="pos-btn-danger"
                       onClick={() => handleRemoveItem(index)}
+                      disabled={isInventoryLocked}
                     >
                       Remove
                     </button>
@@ -906,13 +949,15 @@ const BillEditor = ({
             Print receipt after completion
           </label>
           <div className="billing-action-buttons">
-            <button className="pos-btn-secondary" onClick={handleCancel}>
+            <button className="pos-btn-secondary" onClick={handleCancel} disabled={!canCancelBill}>
               Cancel Bill
             </button>
-            <button className="pos-btn-danger" onClick={handleDelete}>
-              Delete Bill
-            </button>
-            <button className="pos-btn-secondary" onClick={onSave}>
+            {canDeleteCurrentBill ? (
+              <button className="pos-btn-danger" onClick={handleDelete}>
+                Delete Bill
+              </button>
+            ) : null}
+            <button className="pos-btn-secondary" onClick={handleSave}>
               Save Bill
             </button>
             <button ref={completeButtonRef} className="pos-btn-success" onClick={handleComplete}>
@@ -931,6 +976,7 @@ const BillEditor = ({
 
 export default function BillingWorkspace() {
   const navigate = useNavigate()
+  const { hasPermission } = useAuth()
   const [openBills, setOpenBills] = useState([])
   const [products, setProducts] = useState([])
   const [billTabs, setBillTabs] = useState([])
@@ -953,7 +999,7 @@ export default function BillingWorkspace() {
           window.api.getAllProducts(),
         ])
         setOpenBills(Array.isArray(openBillData) ? openBillData : [])
-        setProducts(Array.isArray(productData) ? productData : [])
+        setProducts((Array.isArray(productData) ? productData : []).filter((product) => Number(product.status) === 1))
       } catch (error) {
         console.error("Failed to load billing workspace:", error)
       } finally {
@@ -1251,6 +1297,7 @@ export default function BillingWorkspace() {
               onDelete={() => handleDeleteBill(activeDraft)}
               onAfterComplete={() => handleCloseTab(activeDraft.id)}
               products={products}
+              canDeleteBill={hasPermission("delete_bill_records")}
             />
           )}
         </section>
@@ -1258,3 +1305,21 @@ export default function BillingWorkspace() {
     </div>
   )
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

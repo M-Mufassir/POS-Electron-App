@@ -1,11 +1,9 @@
-﻿import {
+import {
   beginTransaction,
   commitTransaction,
-  getQuery,
   rollbackTransaction,
 } from "../repositories/dbUtils.js"
 import {
-  deleteAllBills as deleteAllBillsRepo,
   deleteBillById,
   deleteBillItemsByBillId,
   insertBill,
@@ -14,8 +12,8 @@ import {
   selectAllBills,
   selectBarcodeDetails,
   selectBillById,
-  selectBillInventoryApplied,
   selectBillItemsByBillId,
+  selectBillState,
   selectOpenBillsSummary,
   selectProductPricing,
   selectUnitMultiplier,
@@ -32,13 +30,23 @@ const normalizeDiscountType = (value) => {
   return null
 }
 
-const generateInvoiceNo = async () => {
-  const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, "")
-  const row = await getQuery(
-    `SELECT COUNT(*) AS count FROM bills WHERE date(created_at) = date('now')`,
-  )
-  const sequence = Number(row?.count || 0) + 1
-  return `INV-${datePart}-${String(sequence).padStart(4, "0")}`
+const pad = (value, size = 2) => String(value).padStart(size, "0")
+
+const generateInvoiceNo = () => {
+  const now = new Date()
+  const datePart = [
+    now.getFullYear(),
+    pad(now.getMonth() + 1),
+    pad(now.getDate()),
+  ].join("")
+  const timePart = [
+    pad(now.getHours()),
+    pad(now.getMinutes()),
+    pad(now.getSeconds()),
+    pad(now.getMilliseconds(), 3),
+  ].join("")
+  const nonce = Math.floor(Math.random() * 900) + 100
+  return `INV-${datePart}-${timePart}-${nonce}`
 }
 
 const getUnitMultiplier = async (productId, unitId, baseUnitId) => {
@@ -48,7 +56,10 @@ const getUnitMultiplier = async (productId, unitId, baseUnitId) => {
 
   const row = await selectUnitMultiplier(productId, unitId)
   const parsed = Number(row?.conversion_multiplier)
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error("Selected unit is not assigned to this product")
+  }
+  return parsed
 }
 
 const computeLineItem = async (item) => {
@@ -79,20 +90,123 @@ const computeLineItem = async (item) => {
 
   return {
     product_id: productId,
+    product_name: product.name,
     unit_id: unitId,
     barcode_id: barcodeId,
     quantity,
     unit_price: unitPrice,
     subtotal: lineSubtotal,
     base_quantity: quantity * multiplier,
+    product_status: Number(product.status ?? 1),
+    stock_base_qty: Math.max(0, Number(product.stock_base_qty || 0)),
   }
 }
 
-export async function createBill(input = {}) {
-  const customerName = String(input?.customer_name || "").trim()
-  const invoiceNo = await generateInvoiceNo()
+const buildItemSignature = (items = []) => {
+  return items
+    .map((item) => ({
+      barcode_id: Number(item?.barcode_id || 0),
+      product_id: Number(item?.product_id),
+      quantity: Number(item?.quantity || 0),
+      unit_id: Number(item?.unit_id),
+    }))
+    .sort((left, right) => {
+      if (left.product_id !== right.product_id) return left.product_id - right.product_id
+      if (left.unit_id !== right.unit_id) return left.unit_id - right.unit_id
+      if (left.barcode_id !== right.barcode_id) return left.barcode_id - right.barcode_id
+      return left.quantity - right.quantity
+    })
+}
 
-  const result = await insertBill(invoiceNo, customerName)
+const haveSameItems = (leftItems, rightItems) => {
+  const left = buildItemSignature(leftItems)
+  const right = buildItemSignature(rightItems)
+
+  if (left.length !== right.length) {
+    return false
+  }
+
+  return left.every((item, index) => {
+    const candidate = right[index]
+    return (
+      item.product_id === candidate.product_id &&
+      item.unit_id === candidate.unit_id &&
+      item.barcode_id === candidate.barcode_id &&
+      item.quantity === candidate.quantity
+    )
+  })
+}
+
+const assertProductsCanBeSold = (items) => {
+  for (const item of items) {
+    if (item.product_status !== 1) {
+      throw new Error(`${item.product_name} is inactive and cannot be billed`)
+    }
+  }
+}
+
+const assertStockAvailability = async (items) => {
+  const quantitiesByProduct = new Map()
+
+  for (const item of items) {
+    const existing = quantitiesByProduct.get(item.product_id)
+    quantitiesByProduct.set(item.product_id, {
+      product_name: item.product_name,
+      available_stock: item.stock_base_qty,
+      required_stock: Number(existing?.required_stock || 0) + Number(item.base_quantity || 0),
+    })
+  }
+
+  for (const product of quantitiesByProduct.values()) {
+    if (product.required_stock > product.available_stock) {
+      throw new Error(
+        `${product.product_name} does not have enough stock. Available: ${product.available_stock}, required: ${product.required_stock}.`,
+      )
+    }
+  }
+}
+
+const applyInventoryAdjustments = async (items) => {
+  const quantitiesByProduct = new Map()
+
+  for (const item of items) {
+    quantitiesByProduct.set(
+      item.product_id,
+      Number(quantitiesByProduct.get(item.product_id) || 0) + Number(item.base_quantity || 0),
+    )
+  }
+
+  for (const [productId, quantity] of quantitiesByProduct.entries()) {
+    const result = await updateProductStock(productId, quantity)
+    if (result.changes === 0) {
+      throw new Error("Inventory changed while saving the bill. Refresh and try again.")
+    }
+  }
+}
+
+export async function createBill(input = {}, actor = null) {
+  const customerName = String(input?.customer_name || "").trim()
+  const actorId = Number(actor?.id)
+  const persistedUserId = Number.isFinite(actorId) && actorId > 0 ? actorId : null
+
+  let result = null
+  let invoiceNo = ""
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    invoiceNo = generateInvoiceNo()
+    try {
+      result = await insertBill(invoiceNo, customerName, persistedUserId)
+      break
+    } catch (error) {
+      if (!String(error?.message || "").toLowerCase().includes("unique")) {
+        throw error
+      }
+    }
+  }
+
+  if (!result) {
+    throw new Error("Unable to generate a unique invoice number. Please try again.")
+  }
 
   return {
     id: result.lastID,
@@ -135,6 +249,9 @@ export async function resolveBarcode(barcodeValue) {
 
   const barcodeRow = await selectBarcodeDetails(barcode)
   if (!barcodeRow) {
+    return null
+  }
+  if (Number(barcodeRow.product_status ?? 1) !== 1) {
     return null
   }
 
@@ -185,18 +302,37 @@ export async function saveBill(input = {}) {
   const balanceAmount = Math.max(0, totalAmount - paidAmount)
 
   let status = "OPEN"
-  if (totalAmount <= 0 || paidAmount >= totalAmount) {
-    status = "PAID"
-  } else if (paidAmount > 0 && paidAmount < totalAmount) {
-    status = "PARTIAL"
+  if (computedItems.length > 0) {
+    if (totalAmount <= 0 || paidAmount >= totalAmount) {
+      status = "PAID"
+    } else if (paidAmount > 0 && paidAmount < totalAmount) {
+      status = "PARTIAL"
+    }
   }
 
-  const billRow = await selectBillInventoryApplied(billId)
+  const billRow = await selectBillState(billId)
   if (!billRow) {
     throw new Error("Bill not found")
   }
+  if (String(billRow.status || "").toUpperCase() === "CANCELLED") {
+    throw new Error("Cancelled bills cannot be edited")
+  }
 
   const inventoryApplied = Number(billRow.inventory_applied) === 1
+
+  if (computedItems.length === 0 && paidAmount > 0) {
+    throw new Error("Add at least one item before taking payment")
+  }
+
+  if (inventoryApplied) {
+    const persistedItems = await selectBillItemsByBillId(billId)
+    if (!haveSameItems(computedItems, persistedItems)) {
+      throw new Error("Items cannot be changed after inventory has been applied")
+    }
+  } else {
+    assertProductsCanBeSold(computedItems)
+    await assertStockAvailability(computedItems)
+  }
 
   try {
     await beginTransaction()
@@ -219,9 +355,7 @@ export async function saveBill(input = {}) {
     }
 
     if (!inventoryApplied && (status === "PARTIAL" || status === "PAID")) {
-      for (const item of computedItems) {
-        await updateProductStock(item.product_id, item.base_quantity)
-      }
+      await applyInventoryAdjustments(computedItems)
       await markBillInventoryApplied(billId)
     }
 
@@ -236,6 +370,7 @@ export async function saveBill(input = {}) {
       total_amount: totalAmount,
       paid_amount: paidAmount,
       balance_amount: balanceAmount,
+      inventory_applied: inventoryApplied || status === "PARTIAL" || status === "PAID",
     }
   } catch (err) {
     try {
@@ -253,6 +388,17 @@ export async function cancelBill(billId) {
     throw new Error("Invalid bill id")
   }
 
+  const bill = await selectBillState(parsedId)
+  if (!bill) {
+    throw new Error("Bill not found")
+  }
+  if (Number(bill.inventory_applied) === 1) {
+    throw new Error("Bills with applied inventory cannot be cancelled")
+  }
+  if (String(bill.status || "").toUpperCase() === "PAID") {
+    throw new Error("Paid bills cannot be cancelled")
+  }
+
   await updateBillStatus(parsedId, "CANCELLED")
   return { ok: true }
 }
@@ -263,11 +409,18 @@ export async function deleteBill(billId) {
     throw new Error("Invalid bill id")
   }
 
+  const bill = await selectBillState(parsedId)
+  if (!bill) {
+    throw new Error("Bill not found")
+  }
+  if (Number(bill.inventory_applied) === 1) {
+    throw new Error("Bills with applied inventory cannot be deleted")
+  }
+
   await deleteBillById(parsedId)
   return { ok: true }
 }
 
 export async function deleteAllBills() {
-  await deleteAllBillsRepo()
-  return { ok: true }
+  throw new Error("Bulk bill deletion is disabled for production safety")
 }

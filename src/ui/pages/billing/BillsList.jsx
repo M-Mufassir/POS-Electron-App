@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import BillDetailsModal from "./components/BillDetailsModal"
+import { useAuth } from "../../context/AuthContext"
+import { formatAppDateTime } from "../../utils/dateTime"
 
 const formatCurrency = (value) => {
   const amount = Number(value || 0)
@@ -10,11 +12,12 @@ const formatCurrency = (value) => {
 
 export default function BillsList() {
   const navigate = useNavigate()
+  const { hasPermission } = useAuth()
+  const canDeleteBillRecords = hasPermission("delete_bill_records")
   const [bills, setBills] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedBill, setSelectedBill] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
-  const [deletingAll, setDeletingAll] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
 
@@ -96,22 +99,6 @@ export default function BillsList() {
     }
   }
 
-  const handleDeleteAll = async () => {
-    const shouldDelete = window.confirm("Delete ALL bills? This cannot be undone.")
-    if (!shouldDelete) return
-
-    setDeletingAll(true)
-    try {
-      await window.api.deleteAllBills()
-      await fetchBills()
-    } catch (error) {
-      console.error("Failed to delete all bills:", error)
-      alert(error?.message || "Failed to delete all bills.")
-    } finally {
-      setDeletingAll(false)
-    }
-  }
-
   if (loading) {
     return (
       <div className="pos-container flex justify-center items-center h-screen">
@@ -135,13 +122,10 @@ export default function BillsList() {
           <button className="pos-btn-secondary" onClick={() => navigate("/billing")}>
             Back To Billing
           </button>
-          <button className="pos-btn-danger" onClick={handleDeleteAll} disabled={deletingAll}>
-            {deletingAll ? "Deleting..." : "Delete All"}
-          </button>
         </div>
       </div>
 
-      <div className="page-body">
+      <div className="page-body overflow-y-auto">
         <div className="page-summary-grid">
           <div className="page-summary-card">
             <span className="page-summary-label">Total Bills</span>
@@ -219,9 +203,9 @@ export default function BillsList() {
           </div>
         </div>
 
-        <div className="pos-card overflow-hidden flex-1">
-          <div className="overflow-x-auto">
-            <table className="pos-table">
+        <div className="pos-card bills-list-card">
+          <div className="bills-list-table-wrap">
+            <table className="pos-table sticky-header">
               <thead>
                 <tr>
                   <th>Invoice</th>
@@ -231,7 +215,7 @@ export default function BillsList() {
                   <th>Paid</th>
                   <th>Balance</th>
                   <th>Updated</th>
-                  <th></th>
+                  {canDeleteBillRecords ? <th></th> : null}
                 </tr>
               </thead>
               <tbody>
@@ -247,21 +231,23 @@ export default function BillsList() {
                     <td>Rs. {formatCurrency(bill.total_amount)}</td>
                     <td>Rs. {formatCurrency(bill.paid_amount)}</td>
                     <td>Rs. {formatCurrency(bill.balance_amount)}</td>
-                    <td>{bill.updated_at ? new Date(bill.updated_at).toLocaleString() : "-"}</td>
-                    <td>
-                      <button
-                        className="pos-btn-danger"
-                        onClick={(event) => handleDeleteBill(event, bill.id)}
-                        disabled={deletingId === bill.id}
-                      >
-                        {deletingId === bill.id ? "Deleting..." : "Delete"}
-                      </button>
-                    </td>
+                    <td>{formatAppDateTime(bill.updated_at)}</td>
+                    {canDeleteBillRecords ? (
+                      <td>
+                        <button
+                          className="pos-btn-danger"
+                          onClick={(event) => handleDeleteBill(event, bill.id)}
+                          disabled={deletingId === bill.id}
+                        >
+                          {deletingId === bill.id ? "Deleting..." : "Delete"}
+                        </button>
+                      </td>
+                    ) : null}
                   </tr>
                 ))}
                 {filteredBills.length === 0 && (
                   <tr>
-                    <td colSpan="8" className="text-center text-gray-500 py-6">
+                    <td colSpan={canDeleteBillRecords ? 8 : 7} className="text-center text-gray-500 py-6">
                       No bills match the current search or filter.
                     </td>
                   </tr>
@@ -278,3 +264,7 @@ export default function BillsList() {
     </div>
   )
 }
+
+
+
+

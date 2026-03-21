@@ -9,7 +9,9 @@ export const AUTH_ROLE_DEFINITIONS = Object.freeze([
     name: "Admin",
     description: "Administrator with full access",
     permissions: {
+      delete_bill_records: true,
       delete_product: true,
+      manage_bill_history: true,
       manage_passwords: true,
       manage_products: true,
       manage_catalog: true,
@@ -21,7 +23,9 @@ export const AUTH_ROLE_DEFINITIONS = Object.freeze([
     name: "Cashier",
     description: "Can sell products and manage orders",
     permissions: {
+      delete_bill_records: false,
       delete_product: false,
+      manage_bill_history: true,
       manage_passwords: false,
       manage_products: false,
       manage_catalog: false,
@@ -33,7 +37,9 @@ export const AUTH_ROLE_DEFINITIONS = Object.freeze([
     name: "Manager",
     description: "Manages inventory and reports",
     permissions: {
+      delete_bill_records: false,
       delete_product: false,
+      manage_bill_history: true,
       manage_passwords: false,
       manage_products: true,
       manage_catalog: true,

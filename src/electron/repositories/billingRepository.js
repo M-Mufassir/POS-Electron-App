@@ -1,10 +1,10 @@
-﻿import { allQuery, getQuery, runQuery } from "./dbUtils.js"
+import { allQuery, getQuery, runQuery } from "./dbUtils.js"
 
-export const insertBill = (invoiceNo, customerName) => {
+export const insertBill = (invoiceNo, customerName, userId = null) => {
   return runQuery(
-    `INSERT INTO bills (invoice_no, customer_name, status, subtotal, discount_value, total_amount, paid_amount, balance_amount)
-     VALUES (?, ?, 'OPEN', 0, 0, 0, 0, 0)`,
-    [invoiceNo, customerName],
+    `INSERT INTO bills (invoice_no, customer_name, user_id, status, subtotal, discount_value, total_amount, paid_amount, balance_amount)
+     VALUES (?, ?, ?, 'OPEN', 0, 0, 0, 0, 0)`,
+    [invoiceNo, customerName, userId],
   )
 }
 
@@ -77,7 +77,9 @@ export const selectAllBills = () => {
 
 export const selectProductPricing = (productId) => {
   return getQuery(
-    `SELECT id, name, base_price, base_unit_id FROM products WHERE id = ?`,
+    `SELECT id, name, base_price, base_unit_id, stock_base_qty, status
+     FROM products
+     WHERE id = ?`,
     [productId],
   )
 }
@@ -91,8 +93,13 @@ export const selectUnitMultiplier = (productId, unitId) => {
   )
 }
 
-export const selectBillInventoryApplied = (billId) => {
-  return getQuery(`SELECT inventory_applied FROM bills WHERE id = ?`, [billId])
+export const selectBillState = (billId) => {
+  return getQuery(
+    `SELECT id, status, inventory_applied, invoice_no, user_id
+     FROM bills
+     WHERE id = ?`,
+    [billId],
+  )
 }
 
 export const updateBillById = (billId, data) => {
@@ -165,8 +172,9 @@ export const updateProductStock = (productId, quantity) => {
     `UPDATE products
      SET stock_base_qty = COALESCE(stock_base_qty, 0) - ?,
          updated_at = datetime('now')
-     WHERE id = ?`,
-    [quantity, productId],
+     WHERE id = ?
+       AND COALESCE(stock_base_qty, 0) >= ?`,
+    [quantity, productId, quantity],
   )
 }
 
@@ -183,6 +191,8 @@ export const selectBarcodeDetails = (barcodeValue) => {
         p.name AS product_name,
         p.base_price,
         p.base_unit_id,
+        p.status AS product_status,
+        p.stock_base_qty,
         u.name AS unit_name,
         u.symbol AS unit_symbol
      FROM barCodes b

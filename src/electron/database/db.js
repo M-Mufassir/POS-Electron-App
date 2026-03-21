@@ -1,4 +1,4 @@
-﻿import sqlite3 from 'sqlite3'
+import sqlite3 from 'sqlite3'
 import path from 'path'
 import fs from 'fs'
 import process from 'process'
@@ -22,11 +22,12 @@ export function initializeDatabase() {
   }
 
   const isPackaged = Boolean(electronApp?.isPackaged)
-  const basePath = !isPackaged || !electronApp
-    ? path.join(process.cwd(), 'data')
-    : path.join(electronApp.getPath('userData'), 'data')
-
-  // Ensure folder exists
+  const envBasePath = String(process.env.POS_DATA_DIR || '').trim()
+  const basePath = envBasePath || (
+    !isPackaged || !electronApp
+      ? path.join(process.cwd(), 'data')
+      : path.join(electronApp.getPath('userData'), 'data')
+  )
 
   if (!fs.existsSync(basePath)) fs.mkdirSync(basePath, { recursive: true })
 
@@ -169,7 +170,7 @@ export function initializeDatabase() {
         FOREIGN KEY (user_id) REFERENCES users(id)
         )
       `),
-    
+
     db.run(`
         CREATE TABLE IF NOT EXISTS bill_items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -220,8 +221,3 @@ export function initializeDatabase() {
 export function getDB() {
   return db
 }
-
-
-
-
-

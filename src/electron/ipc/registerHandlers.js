@@ -1,4 +1,4 @@
-﻿import * as productService from "../services/productService.js"
+import * as productService from "../services/productService.js"
 import * as categoryService from "../services/categoryService.js"
 import * as unitService from "../services/unitService.js"
 import * as barcodeService from "../services/barcodeService.js"
@@ -109,8 +109,8 @@ export function registerIpcHandlers(ipcMain) {
   })
 
   ipcMain.handle("create-bill", async (event, payload) => {
-    requireAuth(event)
-    return await billingService.createBill(payload)
+    const user = requireAuth(event)
+    return await billingService.createBill(payload, user)
   })
 
   ipcMain.handle("get-bill-by-id", async (event, id) => {
@@ -144,12 +144,12 @@ export function registerIpcHandlers(ipcMain) {
   })
 
   ipcMain.handle("delete-bill", async (event, billId) => {
-    requireAuth(event)
+    requirePermission(event, "delete_bill_records")
     return await billingService.deleteBill(billId)
   })
 
   ipcMain.handle("delete-all-bills", async (event) => {
-    requireAuth(event)
+    requirePermission(event, "delete_bill_records")
     return await billingService.deleteAllBills()
   })
 }
