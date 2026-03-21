@@ -18,6 +18,7 @@ export default function EditProduct() {
   const [categories, setCategories] = useState([])
   const [selectedCategories, setSelectedCategories] = useState([])
   const [selectedUnits, setSelectedUnits] = useState([])
+  const [formValues, setFormValues] = useState({})
   const [status, setStatus] = useState(1)
   const [banner, setBanner] = useState({ type: "", message: "" })
   const { hasPermission } = useAuth()
@@ -44,6 +45,14 @@ export default function EditProduct() {
             conversion_multiplier: Number(unit.conversion_multiplier) || 1,
           })),
         )
+        setFormValues({
+          name: productData?.name || "",
+          code: productData?.code || "",
+          description: productData?.description || "",
+          base_price: productData?.base_price ?? "",
+          base_unit_id: productData?.base_unit_id ?? "",
+          stock_base_qty: productData?.stock_base_qty ?? 0,
+        })
       } catch (error) {
         console.error("Failed to fetch product edit data:", error)
       } finally {
@@ -96,6 +105,9 @@ export default function EditProduct() {
     setSaving(true)
     try {
       const numericId = Number(id)
+      const sanitizedUnits = selectedUnits.filter(
+        (unit) => Number(unit.unit_id) !== Number(formValues.base_unit_id),
+      )
       await window.api.updateProduct(numericId, {
         ...formValues,
         base_price: Number(formValues.base_price) || 0,
@@ -103,7 +115,7 @@ export default function EditProduct() {
         stock_base_qty: Number(formValues.stock_base_qty) || 0,
         status: Number(status) === 0 ? 0 : 1,
         categories: selectedCategories,
-        units: selectedUnits,
+        units: sanitizedUnits,
       })
       const latestProduct = await window.api.getProductById(numericId)
       setProduct(latestProduct)
@@ -231,12 +243,14 @@ export default function EditProduct() {
         <UnitSection
           units={units}
           selectedUnits={selectedUnits}
+          excludedUnitIds={[formValues.base_unit_id || product?.base_unit_id]}
           onChange={setSelectedUnits}
         />
 
         <DynamicForm
           schema={formSchema}
           initialValues={initialValues}
+          onValuesChange={setFormValues}
           onSubmit={handleUpdateProduct}
           title="Product Information"
           subtitle="Edit the core details for this product"

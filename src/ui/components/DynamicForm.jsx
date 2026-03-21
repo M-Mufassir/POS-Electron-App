@@ -83,6 +83,7 @@ const DynamicForm = ({
   schema,
   initialValues = {},
   onSubmit,
+  onValuesChange,
   title = "Create Product",
   subtitle = "Add a new product to your inventory",
   submitLabel = "Save Product",
@@ -94,13 +95,18 @@ const DynamicForm = ({
 
   useEffect(() => {
     setFormData(initialValues);
-  }, [initialValues]);
+    onValuesChange?.(initialValues);
+  }, [initialValues, onValuesChange]);
 
   const handleChange = (name, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => {
+      const next = {
+        ...prev,
+        [name]: value,
+      };
+      onValuesChange?.(next);
+      return next;
+    });
   };
 
   const handleSubmit = async (e) => {

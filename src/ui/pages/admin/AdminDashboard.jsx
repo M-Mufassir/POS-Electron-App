@@ -25,7 +25,6 @@ export default function AdminDashboard() {
     email: "",
     password: "",
     role_id: "",
-    must_reset_password: true,
   })
 
   useEffect(() => {
@@ -279,18 +278,6 @@ export default function AdminDashboard() {
                 ))}
               </select>
             </div>
-            <div className="pos-form-group">
-              <label className="billing-radio">
-                <input
-                  type="checkbox"
-                  checked={newUser.must_reset_password}
-                  onChange={(e) =>
-                    setNewUser((prev) => ({ ...prev, must_reset_password: e.target.checked }))
-                  }
-                />
-                Require password reset on first login
-              </label>
-            </div>
           </div>
 
           <div className="flex gap-3 mt-4">
@@ -315,7 +302,7 @@ export default function AdminDashboard() {
                     email: newUser.email,
                     password: newUser.password,
                     role_id: Number(newUser.role_id),
-                    must_reset_password: newUser.must_reset_password ? 1 : 0,
+                    must_reset_password: 0,
                   })
                   setBanner({ type: "success", message: "User created successfully." })
                   setNewUser({
@@ -323,7 +310,6 @@ export default function AdminDashboard() {
                     email: "",
                     password: "",
                     role_id: getPreferredRoleId(roles),
-                    must_reset_password: true,
                   })
                   await loadUsers()
                   await refresh()

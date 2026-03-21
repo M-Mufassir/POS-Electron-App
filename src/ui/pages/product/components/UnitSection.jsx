@@ -1,11 +1,17 @@
-import React, { useMemo, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 
 export default function UnitSection({
   units = [],
   selectedUnits = [],
+  excludedUnitIds = [],
+  defaultOpen = false,
   onChange,
 }) {
-  const [showEditor, setShowEditor] = useState(false)
+  const [showEditor, setShowEditor] = useState(defaultOpen)
+
+  useEffect(() => {
+    setShowEditor(defaultOpen)
+  }, [defaultOpen])
 
   const selectedUnitMap = useMemo(() => {
     const map = new Map()
@@ -14,6 +20,31 @@ export default function UnitSection({
     })
     return map
   }, [selectedUnits])
+
+  const normalizedExcludedIds = useMemo(
+    () =>
+      new Set(
+        excludedUnitIds
+          .map((unitId) => Number(unitId))
+          .filter((unitId) => Number.isFinite(unitId) && unitId > 0),
+      ),
+    [excludedUnitIds],
+  )
+
+  const selectableUnits = useMemo(
+    () => units.filter((unit) => !normalizedExcludedIds.has(Number(unit.id))),
+    [normalizedExcludedIds, units],
+  )
+
+  useEffect(() => {
+    const filteredUnits = selectedUnits.filter(
+      (entry) => !normalizedExcludedIds.has(Number(entry.unit_id)),
+    )
+
+    if (filteredUnits.length !== selectedUnits.length) {
+      onChange(filteredUnits)
+    }
+  }, [normalizedExcludedIds, onChange, selectedUnits])
 
   const toggleUnit = (unitId) => {
     const exists = selectedUnitMap.has(unitId)
@@ -53,8 +84,11 @@ export default function UnitSection({
 
       {showEditor && (
         <div className="mt-5 border border-slate-200 p-4 bg-slate-50 rounded-lg">
+          <p className="text-sm text-slate-500 mb-4">
+            Base unit is always available automatically. Select only additional selling units here.
+          </p>
           <div className="space-y-3">
-            {units.map((unit) => {
+            {selectableUnits.map((unit) => {
               const selectedUnit = selectedUnitMap.get(unit.id)
               const isChecked = Boolean(selectedUnit)
 
@@ -81,10 +115,14 @@ export default function UnitSection({
                 </div>
               )
             })}
+            {selectableUnits.length === 0 && (
+              <div className="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
+                No extra units available after excluding the selected base unit.
+              </div>
+            )}
           </div>
         </div>
       )}
     </div>
   )
 }
-
