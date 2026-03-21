@@ -5,6 +5,7 @@
     "files": [
         "dist-react/**/*",
         "src/electron/**/*",
+        "src/shared/**/*",
         "package.json"
     ],
     "icon": "./app_icon.png",

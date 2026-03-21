@@ -17,12 +17,17 @@ try {
 let db
 
 export function initializeDatabase() {
-  const isDev = process.env.NODE_ENV === 'development'
-  const basePath = isDev || !electronApp
-    ? path.join(process.cwd(), 'data')         // development mode -> project folder
-    : path.join(electronApp.getPath('userData'), 'data') // production -> user data folder
+  if (db) {
+    return db
+  }
 
-  // Ensure folder exists
+  const isPackaged = Boolean(electronApp?.isPackaged)
+  const basePath = !isPackaged || !electronApp
+    ? path.join(process.cwd(), 'data')
+    : path.join(electronApp.getPath('userData'), 'data')
+
+  // Ensure folder exists
+
   if (!fs.existsSync(basePath)) fs.mkdirSync(basePath, { recursive: true })
 
   const dbPath = path.join(basePath, 'pos.db')
@@ -31,7 +36,7 @@ export function initializeDatabase() {
     if (err) {
       console.error('Database connection error:', err.message)
     } else {
-      console.log('Connected to SQLite database.')
+      console.log(`Connected to SQLite database at ${dbPath}.`)
     }
   })
 
@@ -208,6 +213,8 @@ export function initializeDatabase() {
       `)
 
   })
+
+  return db
 }
 
 export function getDB() {
