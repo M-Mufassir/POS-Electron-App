@@ -84,6 +84,51 @@ const buildUnitOptions = (details) => {
   return units
 }
 
+const STOCK_EPSILON = 0.000001
+
+const formatQuantity = (value) => {
+  const amount = Number(value || 0)
+  if (!Number.isFinite(amount)) return "0"
+  return Number.isInteger(amount) ? String(amount) : amount.toFixed(2).replace(/\.?0+$/, "")
+}
+
+const getItemUnitMultiplier = (item) => {
+  const parsedMultiplier = Number(item?.unit_multiplier || item?.multiplier || 1)
+  if (!Number.isFinite(parsedMultiplier) || parsedMultiplier <= 0) {
+    return 1
+  }
+
+  return parsedMultiplier
+}
+
+const getItemBaseQuantity = (item) => {
+  const parsedBaseQuantity = Number(item?.base_quantity)
+  if (Number.isFinite(parsedBaseQuantity) && parsedBaseQuantity >= 0) {
+    return parsedBaseQuantity
+  }
+
+  return Math.max(0, Number(item?.quantity || 0)) * getItemUnitMultiplier(item)
+}
+
+const getDraftProductUsage = (items, productId, excludeIndex = null) => {
+  return (items || []).reduce((sum, item, itemIndex) => {
+    if (Number(item?.product_id) !== Number(productId)) {
+      return sum
+    }
+    if (excludeIndex !== null && itemIndex === excludeIndex) {
+      return sum
+    }
+
+    return sum + getItemBaseQuantity(item)
+  }, 0)
+}
+
+const getRemainingBaseStock = ({ items, productId, stockBaseQty, excludeIndex = null }) => {
+  const availableStock = Math.max(0, Number(stockBaseQty || 0))
+  const usedStock = getDraftProductUsage(items, productId, excludeIndex)
+  return Math.max(0, availableStock - usedStock)
+}
+
 const ReceiptModal = ({ stage, data }) => {
   const stageText =
     stage === "done"
@@ -233,6 +278,25 @@ const BillEditor = ({
     return basePrice * multiplier
   }, [selectedProduct, selectedUnit])
   const selectedQty = Math.max(0, Number(quantity || 0))
+  const selectedRemainingBaseQty = useMemo(() => {
+    if (!selectedProduct) return 0
+
+    return getRemainingBaseStock({
+      items: draft.items,
+      productId: selectedProduct.id,
+      stockBaseQty: selectedProduct.stock_base_qty,
+    })
+  }, [draft.items, selectedProduct])
+  const selectedMaxQty = useMemo(() => {
+    if (!selectedUnit) return 0
+
+    const multiplier = Number(selectedUnit.multiplier || 1)
+    if (!Number.isFinite(multiplier) || multiplier <= 0) {
+      return 0
+    }
+
+    return selectedRemainingBaseQty / multiplier
+  }, [selectedRemainingBaseQty, selectedUnit])
   const selectedLineTotal = selectedUnitPrice * selectedQty
   const editorSummary = useMemo(
     () => ({
@@ -246,6 +310,76 @@ const BillEditor = ({
   const isInventoryLocked = Number(draft.inventory_applied || 0) === 1
   const canCancelBill = !isInventoryLocked && String(draft.status || "OPEN").toUpperCase() !== "PAID"
   const canDeleteCurrentBill = canDeleteBill && !isInventoryLocked
+
+  const getProductStockBaseQty = (productId, fallbackStock = 0) => {
+    const matchedProduct = products.find((product) => Number(product.id) === Number(productId))
+    if (matchedProduct) {
+      return Math.max(0, Number(matchedProduct.stock_base_qty || 0))
+    }
+
+    return Math.max(0, Number(fallbackStock || 0))
+  }
+
+  const showExceededStockWarning = (productName, maxQty, unitLabel) => {
+    const normalizedUnitLabel = unitLabel || "units"
+
+    if (maxQty > STOCK_EPSILON) {
+      setBanner({
+        type: "warning",
+        message: `${productName} only has ${formatQuantity(maxQty)} ${normalizedUnitLabel} remaining. Quantity was adjusted.`,
+      })
+      return
+    }
+
+    setBanner({
+      type: "warning",
+      message: `${productName} is out of stock.`,
+    })
+  }
+
+  const clampQuantityToAvailableStock = ({
+    requestedQty,
+    productId,
+    productName,
+    stockBaseQty,
+    multiplier,
+    unitLabel,
+    excludeIndex = null,
+  }) => {
+    const safeRequestedQty = Math.max(0, Number(requestedQty || 0))
+    const safeMultiplier = Number(multiplier || 1)
+
+    if (!Number.isFinite(safeRequestedQty) || !Number.isFinite(safeMultiplier) || safeMultiplier <= 0) {
+      return { quantity: 0, adjusted: false }
+    }
+
+    const remainingBaseQty = getRemainingBaseStock({
+      items: draft.items,
+      productId,
+      stockBaseQty: getProductStockBaseQty(productId, stockBaseQty),
+      excludeIndex,
+    })
+    const maxQty = remainingBaseQty / safeMultiplier
+
+    if (safeRequestedQty <= maxQty + STOCK_EPSILON) {
+      return {
+        quantity: safeRequestedQty,
+        adjusted: false,
+        remainingBaseQty,
+        maxQty,
+      }
+    }
+
+    const clampedQty = Math.max(0, maxQty)
+    showExceededStockWarning(productName, clampedQty, unitLabel)
+
+    return {
+      quantity: clampedQty,
+      adjusted: true,
+      remainingBaseQty,
+      maxQty,
+    }
+  }
 
   const focusBarcodeInput = () => {
     window.setTimeout(() => {
@@ -290,15 +424,45 @@ const BillEditor = ({
     }, 0)
   }
 
+  const handleSelectedQuantityInputChange = (nextValue) => {
+    if (nextValue === "") {
+      setQuantity("")
+      return
+    }
+
+    if (!selectedProduct || !selectedUnit) {
+      setQuantity(nextValue)
+      return
+    }
+
+    const requestedQty = Number(nextValue)
+    if (!Number.isFinite(requestedQty) || requestedQty < 0) {
+      setQuantity(nextValue)
+      return
+    }
+
+    const { quantity: clampedQty } = clampQuantityToAvailableStock({
+      requestedQty,
+      productId: selectedProduct.id,
+      productName: selectedProduct.name,
+      stockBaseQty: selectedProduct.stock_base_qty,
+      multiplier: selectedUnit.multiplier,
+      unitLabel: selectedUnit.symbol || selectedUnit.name || "units",
+    })
+
+    setQuantity(clampedQty)
+  }
+
   const handleSelectProduct = async (product) => {
-    setSelectedProduct(product)
     setProductQuery(`${product.name}`)
     setProductMatches([])
     setHighlightedProductIndex(-1)
 
     try {
       const details = await window.api.getProductById(Number(product.id))
-      const unitOptions = buildUnitOptions(details)
+      const normalizedProduct = { ...product, ...details }
+      const unitOptions = buildUnitOptions(normalizedProduct)
+      setSelectedProduct(normalizedProduct)
       setAvailableUnits(unitOptions)
       setSelectedUnitId(String(unitOptions[0]?.id || ""))
       focusUnitSelect()
@@ -341,18 +505,29 @@ const BillEditor = ({
         Number(entry.barcode_id || 0) === Number(item.barcode_id || 0),
     )
 
+    const itemMultiplier = getItemUnitMultiplier(item)
     let updatedItems = [...draft.items]
     if (existingIndex >= 0) {
       const existing = updatedItems[existingIndex]
+      const lineMultiplier = Number(existing.unit_multiplier || item.unit_multiplier || itemMultiplier || 1) || 1
       const newQty = Number(existing.quantity || 0) + Number(item.quantity || 0)
       const newSubtotal = Number(existing.unit_price || 0) * newQty
       updatedItems[existingIndex] = {
         ...existing,
         quantity: newQty,
         subtotal: newSubtotal,
+        unit_multiplier: lineMultiplier,
+        base_quantity: newQty * lineMultiplier,
       }
     } else {
-      updatedItems = [...updatedItems, item]
+      updatedItems = [
+        ...updatedItems,
+        {
+          ...item,
+          unit_multiplier: itemMultiplier,
+          base_quantity: Number(item.base_quantity || 0) || Number(item.quantity || 0) * itemMultiplier,
+        },
+      ]
     }
 
     onDraftChange({ ...draft, items: updatedItems })
@@ -374,6 +549,19 @@ const BillEditor = ({
       return
     }
 
+    const { quantity: nextQty } = clampQuantityToAvailableStock({
+      requestedQty: qty,
+      productId: selectedProduct.id,
+      productName: selectedProduct.name,
+      stockBaseQty: selectedProduct.stock_base_qty,
+      multiplier,
+      unitLabel: unit?.symbol || unit?.name || "units",
+    })
+
+    if (nextQty <= STOCK_EPSILON) {
+      return
+    }
+
     const unitPrice = basePrice * multiplier
     appendItem({
       product_id: selectedProduct.id,
@@ -381,10 +569,13 @@ const BillEditor = ({
       unit_id: Number(selectedUnitId),
       unit_name: unit?.name,
       unit_symbol: unit?.symbol,
-      quantity: qty,
+      quantity: nextQty,
       unit_price: unitPrice,
-      subtotal: unitPrice * qty,
+      subtotal: unitPrice * nextQty,
       barcode_id: null,
+      stock_base_qty: selectedProduct.stock_base_qty,
+      unit_multiplier: multiplier,
+      base_quantity: nextQty * multiplier,
     })
 
     resetItemSelection("product")
@@ -417,16 +608,33 @@ const BillEditor = ({
         return
       }
 
+      const { quantity: nextQty } = clampQuantityToAvailableStock({
+        requestedQty: qty,
+        productId: resolved.product_id,
+        productName: resolved.product_name,
+        stockBaseQty: resolved.stock_base_qty,
+        multiplier: resolved.multiplier,
+        unitLabel: resolved.unit_symbol || resolved.unit_name || "units",
+      })
+
+      if (nextQty <= STOCK_EPSILON) {
+        focusBarcodeInput()
+        return
+      }
+
       appendItem({
         product_id: resolved.product_id,
         product_name: resolved.product_name,
         unit_id: resolved.unit_id,
         unit_name: resolved.unit_name,
         unit_symbol: resolved.unit_symbol,
-        quantity: qty,
+        quantity: nextQty,
         unit_price: resolved.unit_price,
-        subtotal: resolved.unit_price * qty,
+        subtotal: resolved.unit_price * nextQty,
         barcode_id: resolved.barcode_id,
+        stock_base_qty: resolved.stock_base_qty,
+        unit_multiplier: resolved.multiplier,
+        base_quantity: nextQty * Number(resolved.multiplier || 1),
       })
 
       setBarcodeInput("")
@@ -444,14 +652,31 @@ const BillEditor = ({
       setBanner({ type: "warning", message: "Inventory is already applied. Items cannot be changed on this bill." })
       return
     }
+
+    const itemToUpdate = draft.items[index]
+    if (!itemToUpdate) return
+
     const nextQty = Math.max(0, Number(nextValue || 0))
+    const multiplier = getItemUnitMultiplier(itemToUpdate)
+    const { quantity: clampedQty } = clampQuantityToAvailableStock({
+      requestedQty: nextQty,
+      productId: itemToUpdate.product_id,
+      productName: itemToUpdate.product_name,
+      stockBaseQty: itemToUpdate.stock_base_qty,
+      multiplier,
+      unitLabel: itemToUpdate.unit_symbol || itemToUpdate.unit_name || "units",
+      excludeIndex: index,
+    })
+
     const updatedItems = draft.items.map((item, itemIndex) => {
       if (itemIndex !== index) return item
       const unitPrice = Number(item.unit_price || 0)
       return {
         ...item,
-        quantity: nextQty,
-        subtotal: unitPrice * nextQty,
+        quantity: clampedQty,
+        subtotal: unitPrice * clampedQty,
+        unit_multiplier: multiplier,
+        base_quantity: clampedQty * multiplier,
       }
     })
     onDraftChange({ ...draft, items: updatedItems })
@@ -767,10 +992,15 @@ const BillEditor = ({
                     step="any"
                     className="pos-input"
                     value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
+                    onChange={(e) => handleSelectedQuantityInputChange(e.target.value)}
                     onKeyDown={handleQuantityKeyDown}
                     disabled={isInventoryLocked}
                   />
+                  {selectedProduct && selectedUnit ? (
+                    <div className="mt-1 text-xs text-gray-500">
+                      Remaining: {formatQuantity(selectedRemainingBaseQty)} {selectedProduct.base_unit_symbol || selectedProduct.base_unit_name || "base units"} | Max: {formatQuantity(selectedMaxQty)} {selectedUnit.symbol || selectedUnit.name || "units"}
+                    </div>
+                  ) : null}
                 </td>
                 <td className="billing-entry-cell-strong">
                   {selectedProduct && selectedUnit
@@ -1305,6 +1535,8 @@ export default function BillingWorkspace() {
     </div>
   )
 }
+
+
 
 
 

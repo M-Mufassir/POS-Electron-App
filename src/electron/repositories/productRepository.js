@@ -1,4 +1,4 @@
-﻿import { allQuery, getQuery, runQuery } from "./dbUtils.js"
+import { allQuery, getQuery, runQuery } from "./dbUtils.js"
 
 export const insertProduct = (product) => {
   return runQuery(
@@ -131,6 +131,16 @@ export const updateProductStatus = (productId, status) => {
   )
 }
 
+export const incrementProductStockById = (productId, quantity) => {
+  return runQuery(
+    `UPDATE products
+     SET stock_base_qty = COALESCE(stock_base_qty, 0) + ?,
+         updated_at = datetime('now')
+     WHERE id = ?`,
+    [quantity, productId],
+  )
+}
+
 export const selectProductCategoriesByProductId = (productId) => {
   return allQuery(
     `SELECT c.id, c.name, c.description
@@ -141,4 +151,3 @@ export const selectProductCategoriesByProductId = (productId) => {
     [productId],
   )
 }
-

@@ -47,7 +47,10 @@ const Navbar = () => {
     [],
   )
 
-  const isActive = (path) => location.pathname === path
+  const isActive = (path) => {
+    if (path === "/") return location.pathname === "/"
+    return location.pathname === path || location.pathname.startsWith(`${path}/`)
+  }
 
   return (
     <nav className={`pos-navbar ${isCollapsed ? "collapsed" : ""}`}>
@@ -72,7 +75,6 @@ const Navbar = () => {
               <button
                 onClick={() => {
                   navigate(item.path)
-                  setIsCollapsed(true)
                 }}
                 className={`navbar-link ${isActive(item.path) ? "active" : ""}`}
               >

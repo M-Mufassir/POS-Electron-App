@@ -38,6 +38,11 @@ export function registerIpcHandlers(ipcMain) {
     return await productService.inactivateProduct(id)
   })
 
+  ipcMain.handle("add-product-stock", async (event, { id, quantity }) => {
+    requirePermission(event, "manage_products")
+    return await productService.addProductStock(id, quantity)
+  })
+
   ipcMain.handle("get-all-categories", async (event) => {
     requireAuth(event)
     return await categoryService.getAllCategories()

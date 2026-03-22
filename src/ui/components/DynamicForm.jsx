@@ -95,18 +95,17 @@ const DynamicForm = ({
 
   useEffect(() => {
     setFormData(initialValues);
-    onValuesChange?.(initialValues);
-  }, [initialValues, onValuesChange]);
+  }, [initialValues]);
+
+  useEffect(() => {
+    onValuesChange?.(formData);
+  }, [formData, onValuesChange]);
 
   const handleChange = (name, value) => {
-    setFormData((prev) => {
-      const next = {
-        ...prev,
-        [name]: value,
-      };
-      onValuesChange?.(next);
-      return next;
-    });
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const handleSubmit = async (e) => {

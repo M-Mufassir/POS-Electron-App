@@ -25,10 +25,19 @@ export const selectBillItemsByBillId = (billId) => {
         bi.subtotal,
         p.name AS product_name,
         u.name AS unit_name,
-        u.symbol AS unit_symbol
+        u.symbol AS unit_symbol,
+        CASE
+          WHEN bi.unit_id = p.base_unit_id THEN 1
+          ELSE COALESCE(pu.conversion_multiplier, 1)
+        END AS unit_multiplier,
+        bi.quantity * CASE
+          WHEN bi.unit_id = p.base_unit_id THEN 1
+          ELSE COALESCE(pu.conversion_multiplier, 1)
+        END AS base_quantity
      FROM bill_items bi
      JOIN products p ON p.id = bi.product_id
      JOIN units u ON u.id = bi.unit_id
+     LEFT JOIN product_units pu ON pu.product_id = bi.product_id AND pu.unit_id = bi.unit_id
      WHERE bi.bill_id = ?
      ORDER BY bi.id ASC`,
     [billId],
@@ -202,3 +211,4 @@ export const selectBarcodeDetails = (barcodeValue) => {
     [barcodeValue],
   )
 }
+

@@ -1,4 +1,4 @@
-﻿import {
+import {
   beginTransaction,
   commitTransaction,
   rollbackTransaction,
@@ -9,6 +9,7 @@ import {
   deleteProductById,
   deleteProductCategories,
   deleteProductUnits,
+  incrementProductStockById,
   insertProduct,
   insertProductCategory,
   insertProductUnit,
@@ -225,6 +226,25 @@ export async function inactivateProduct(id) {
   await updateProductStatus(parsedId, 0)
 }
 
+export async function addProductStock(id, quantity) {
+  const parsedId = Number(id)
+  const parsedQuantity = Number(quantity)
+
+  if (!Number.isFinite(parsedId) || parsedId <= 0) {
+    throw new Error("Invalid product ID")
+  }
+  if (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0) {
+    throw new Error("Stock addition must be greater than 0")
+  }
+
+  const updateResult = await incrementProductStockById(parsedId, parsedQuantity)
+  if (updateResult.changes === 0) {
+    throw new Error("Product not found")
+  }
+
+  return await getProductById(parsedId)
+}
+
 export async function addProductCategory(productId, categoryId) {
   await insertProductCategory(productId, categoryId)
 }
@@ -248,4 +268,3 @@ export async function getProductCategoriesByProductId(productId) {
   }
   return await selectProductCategoriesByProductId(parsedProductId)
 }
-

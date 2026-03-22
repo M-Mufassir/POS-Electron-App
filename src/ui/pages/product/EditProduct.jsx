@@ -6,6 +6,21 @@ import CategorySection from "./components/CategorySection"
 import UnitSection from "./components/UnitSection"
 import { useAuth } from "../../context/AuthContext"
 
+const buildProductFormValues = (productData) => ({
+  name: productData?.name || "",
+  code: productData?.code || "",
+  description: productData?.description || "",
+  base_price: productData?.base_price ?? "",
+  base_unit_id: productData?.base_unit_id ?? "",
+  stock_base_qty: productData?.stock_base_qty ?? 0,
+})
+
+const formatQuantity = (value) => {
+  const amount = Number(value || 0)
+  if (!Number.isFinite(amount)) return "0"
+  return Number.isInteger(amount) ? String(amount) : amount.toFixed(2).replace(/\.?0+$/, "")
+}
+
 export default function EditProduct() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -13,6 +28,9 @@ export default function EditProduct() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [deletingProduct, setDeletingProduct] = useState(false)
+  const [addingStock, setAddingStock] = useState(false)
+  const [showStockAdder, setShowStockAdder] = useState(false)
+  const [stockToAdd, setStockToAdd] = useState("")
   const [product, setProduct] = useState(null)
   const [units, setUnits] = useState([])
   const [categories, setCategories] = useState([])
@@ -45,14 +63,7 @@ export default function EditProduct() {
             conversion_multiplier: Number(unit.conversion_multiplier) || 1,
           })),
         )
-        setFormValues({
-          name: productData?.name || "",
-          code: productData?.code || "",
-          description: productData?.description || "",
-          base_price: productData?.base_price ?? "",
-          base_unit_id: productData?.base_unit_id ?? "",
-          stock_base_qty: productData?.stock_base_qty ?? 0,
-        })
+        setFormValues(buildProductFormValues(productData))
       } catch (error) {
         console.error("Failed to fetch product edit data:", error)
       } finally {
@@ -88,44 +99,78 @@ export default function EditProduct() {
     [units],
   )
 
-  const initialValues = useMemo(
-    () => ({
-      name: product?.name || "",
-      code: product?.code || "",
-      description: product?.description || "",
-      base_price: product?.base_price ?? "",
-      base_unit_id: product?.base_unit_id ?? "",
-      stock_base_qty: product?.stock_base_qty ?? 0,
-    }),
-    [product],
-  )
+  const currentStock = Math.max(0, Number(product?.stock_base_qty || 0))
+  const baseUnitLabel = product?.base_unit_symbol || product?.base_unit_name || "base units"
+  const handleGoBack = () => {
+    const canGoBack = Number(window.history?.state?.idx) > 0
+    if (canGoBack) {
+      navigate(-1)
+      return
+    }
 
-  const handleUpdateProduct = async (formValues) => {
+    if (id) {
+      navigate(`/products/${id}`)
+      return
+    }
+
+    navigate("/products")
+  }
+
+  const handleUpdateProduct = async (nextFormValues) => {
     setBanner({ type: "", message: "" })
     setSaving(true)
     try {
       const numericId = Number(id)
       const sanitizedUnits = selectedUnits.filter(
-        (unit) => Number(unit.unit_id) !== Number(formValues.base_unit_id),
+        (unit) => Number(unit.unit_id) !== Number(nextFormValues.base_unit_id),
       )
       await window.api.updateProduct(numericId, {
-        ...formValues,
-        base_price: Number(formValues.base_price) || 0,
-        base_unit_id: Number(formValues.base_unit_id),
-        stock_base_qty: Number(formValues.stock_base_qty) || 0,
+        ...nextFormValues,
+        base_price: Number(nextFormValues.base_price) || 0,
+        base_unit_id: Number(nextFormValues.base_unit_id),
+        stock_base_qty: Number(nextFormValues.stock_base_qty) || 0,
         status: Number(status) === 0 ? 0 : 1,
         categories: selectedCategories,
         units: sanitizedUnits,
       })
-      const latestProduct = await window.api.getProductById(numericId)
-      setProduct(latestProduct)
-      setStatus(Number(latestProduct?.status) === 0 ? 0 : 1)
-      setBanner({ type: "success", message: "Product updated successfully." })
+
+      navigate(`/products/${numericId}`)
     } catch (error) {
       console.error("Failed to update product:", error)
-      setBanner({ type: "error", message: "Failed to update product. Please try again." })
+      setBanner({ type: "error", message: error?.message || "Failed to update product. Please try again." })
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleAddStock = async (event) => {
+    event.preventDefault()
+    setBanner({ type: "", message: "" })
+
+    const quantity = Number(stockToAdd)
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      setBanner({ type: "warning", message: "Enter a stock amount greater than 0." })
+      return
+    }
+
+    setAddingStock(true)
+    try {
+      const updatedProduct = await window.api.addProductStock(Number(id), quantity)
+      setProduct(updatedProduct)
+      setFormValues((prev) => ({
+        ...prev,
+        stock_base_qty: updatedProduct?.stock_base_qty ?? prev.stock_base_qty,
+      }))
+      setStockToAdd("")
+      setBanner({
+        type: "success",
+        message: `Stock added successfully. Remaining stock is now ${formatQuantity(updatedProduct?.stock_base_qty)} ${updatedProduct?.base_unit_symbol || updatedProduct?.base_unit_name || "base units"}.`,
+      })
+    } catch (error) {
+      console.error("Failed to add product stock:", error)
+      setBanner({ type: "error", message: error?.message || "Failed to add stock. Please try again." })
+    } finally {
+      setAddingStock(false)
     }
   }
 
@@ -171,7 +216,7 @@ export default function EditProduct() {
     return (
       <div className="pos-container flex flex-col items-center justify-center h-screen">
         <p className="text-gray-600 text-lg mb-6">Product not found.</p>
-        <button onClick={() => navigate("/products")} className="pos-btn-primary">
+        <button type="button" onClick={() => navigate("/products")} className="pos-btn-primary">
           Back to Products
         </button>
       </div>
@@ -195,16 +240,81 @@ export default function EditProduct() {
         />
 
         <div className="flex flex-wrap gap-3">
-          <button onClick={() => navigate(`/products/${id}`)} className="pos-btn-secondary">
-            Back to Product Details
+          <button type="button" onClick={handleGoBack} className="pos-btn-secondary">
+            Go Back
           </button>
           <button
+            type="button"
             onClick={() => navigate(`/barcodes?productId=${id}`)}
             className="pos-btn-success"
           >
             Manage Barcodes
           </button>
+          <button
+            type="button"
+            className={showStockAdder ? "pos-btn-secondary" : "pos-btn-primary"}
+            onClick={() => {
+              setShowStockAdder((prev) => !prev)
+              setStockToAdd("")
+            }}
+          >
+            {showStockAdder ? "Hide Add Stock" : "Add Stock"}
+          </button>
         </div>
+
+        {showStockAdder ? (
+          <div className="pos-card p-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h3 className="pos-section-title text-base">Add Stock</h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  Add more stock to the current remaining quantity without overwriting it.
+                </p>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-right min-w-[200px]">
+                <p className="text-xs uppercase tracking-wide text-gray-500">Current Remaining</p>
+                <strong className="block text-lg text-slate-800 mt-1">
+                  {formatQuantity(currentStock)} {baseUnitLabel}
+                </strong>
+              </div>
+            </div>
+
+            <form onSubmit={handleAddStock} className="mt-5 space-y-4">
+              <div className="pos-form-group max-w-md">
+                <label className="pos-label">Stock To Add ({baseUnitLabel})</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  className="pos-input"
+                  value={stockToAdd}
+                  onChange={(event) => setStockToAdd(event.target.value)}
+                  placeholder={`Enter stock amount in ${baseUnitLabel}`}
+                />
+              </div>
+
+              <p className="text-xs text-gray-500">
+                New remaining stock will be current remaining + entered amount.
+              </p>
+
+              <div className="flex flex-wrap gap-3">
+                <button type="submit" className="pos-btn-primary" disabled={addingStock}>
+                  {addingStock ? "Adding..." : "Add to Remaining"}
+                </button>
+                <button
+                  type="button"
+                  className="pos-btn-secondary"
+                  onClick={() => {
+                    setShowStockAdder(false)
+                    setStockToAdd("")
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : null}
 
         <div className="pos-card p-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -224,13 +334,18 @@ export default function EditProduct() {
               </p>
               <p className="text-xs text-gray-500 mt-2">Status is saved when you click Update Product.</p>
             </div>
-            <button
-              type="button"
-              className={status === 1 ? "pos-btn-warning" : "pos-btn-success"}
-              onClick={() => setStatus((prev) => (prev === 1 ? 0 : 1))}
-            >
-              {status === 1 ? "Set Inactive" : "Set Active"}
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-2 text-sm text-emerald-900">
+                Remaining stock: <strong>{formatQuantity(currentStock)} {baseUnitLabel}</strong>
+              </div>
+              <button
+                type="button"
+                className={status === 1 ? "pos-btn-warning" : "pos-btn-success"}
+                onClick={() => setStatus((prev) => (prev === 1 ? 0 : 1))}
+              >
+                {status === 1 ? "Set Inactive" : "Set Active"}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -249,7 +364,7 @@ export default function EditProduct() {
 
         <DynamicForm
           schema={formSchema}
-          initialValues={initialValues}
+          initialValues={formValues}
           onValuesChange={setFormValues}
           onSubmit={handleUpdateProduct}
           title="Product Information"
@@ -262,7 +377,7 @@ export default function EditProduct() {
               className="pos-btn-secondary"
               onClick={() => navigate(`/products/${id}`)}
             >
-              Cancel
+              Product Details
             </button>
           }
         />
