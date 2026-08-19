@@ -1,17 +1,29 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { buildCategoryTree, collectSubtreeIds, flattenCategoryTree } from "../../../utils/categoryTree"
 
-function AddCategoryCard({ isOpen, onClose, onSubmit, saving }) {
+// Handles both "Add category" / "Add subcategory" and "Edit category".
+// `editingCategory` (null for create) and `defaultParentId` (pre-selects a
+// parent when adding a subcategory from a tree row) drive the two modes.
+function CategoryFormModal({ isOpen, onClose, onSubmit, saving, categories, editingCategory, defaultParentId }) {
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
+  const [parentId, setParentId] = useState("")
   const [error, setError] = useState("")
 
   useEffect(() => {
     if (!isOpen) return
 
-    setName("")
-    setDescription("")
+    setName(editingCategory?.name || "")
+    setDescription(editingCategory?.description || "")
+    setParentId(
+      editingCategory
+        ? String(editingCategory.parent_id || "")
+        : defaultParentId
+          ? String(defaultParentId)
+          : "",
+    )
     setError("")
-  }, [isOpen])
+  }, [isOpen, editingCategory, defaultParentId])
 
   useEffect(() => {
     if (!isOpen) return
@@ -25,6 +37,15 @@ function AddCategoryCard({ isOpen, onClose, onSubmit, saving }) {
     window.addEventListener("keydown", handleEscape)
     return () => window.removeEventListener("keydown", handleEscape)
   }, [isOpen, onClose, saving])
+
+  const parentOptions = useMemo(() => {
+    const excludedIds = editingCategory
+      ? collectSubtreeIds(categories, editingCategory.id)
+      : new Set()
+
+    const tree = buildCategoryTree(categories.filter((category) => !excludedIds.has(category.id)))
+    return flattenCategoryTree(tree)
+  }, [categories, editingCategory])
 
   if (!isOpen) return null
 
@@ -47,9 +68,13 @@ function AddCategoryCard({ isOpen, onClose, onSubmit, saving }) {
     setError("")
 
     try {
-      await onSubmit({ name: trimmedName, description: trimmedDescription })
+      await onSubmit({
+        name: trimmedName,
+        description: trimmedDescription,
+        parent_id: parentId ? Number(parentId) : null,
+      })
     } catch (submitError) {
-      setError(submitError?.message || "Failed to add category.")
+      setError(submitError?.message || "Failed to save category.")
     }
   }
 
@@ -59,9 +84,11 @@ function AddCategoryCard({ isOpen, onClose, onSubmit, saving }) {
       onMouseDown={handleBackdropMouseDown}
     >
       <div className="bg-white border border-slate-300 shadow-2xl w-full max-w-md p-6">
-        <h3 className="text-xl font-bold text-slate-800">Add New Category</h3>
+        <h3 className="text-xl font-bold text-slate-800">
+          {editingCategory ? "Edit Category" : "Add New Category"}
+        </h3>
         <p className="text-sm text-slate-500 mt-1 mb-5">
-          Create a category to organize your products.
+          {editingCategory ? "Update this category's details." : "Create a category to organize your products."}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -77,6 +104,24 @@ function AddCategoryCard({ isOpen, onClose, onSubmit, saving }) {
               disabled={saving}
               autoFocus
             />
+          </div>
+
+          <div className="pos-form-group">
+            <label htmlFor="category-parent" className="pos-label">Parent Category (optional)</label>
+            <select
+              id="category-parent"
+              className="pos-input"
+              value={parentId}
+              onChange={(event) => setParentId(event.target.value)}
+              disabled={saving}
+            >
+              <option value="">No parent (top level)</option>
+              {parentOptions.map(({ category, depth }) => (
+                <option key={category.id} value={category.id}>
+                  {"— ".repeat(depth)}{category.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="pos-form-group">
@@ -104,7 +149,7 @@ function AddCategoryCard({ isOpen, onClose, onSubmit, saving }) {
               Cancel
             </button>
             <button type="submit" className="pos-btn-primary" disabled={saving}>
-              {saving ? "Saving..." : "Save Category"}
+              {saving ? "Saving..." : editingCategory ? "Save Changes" : "Save Category"}
             </button>
           </div>
         </form>
@@ -113,4 +158,4 @@ function AddCategoryCard({ isOpen, onClose, onSubmit, saving }) {
   )
 }
 
-export default AddCategoryCard
+export default CategoryFormModal

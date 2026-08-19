@@ -12,6 +12,7 @@ import Barcodes from "../pages/barcode/Barcodes"
 import BillingWorkspace from "../pages/billing/BillingWorkspace"
 import BillsList from "../pages/billing/BillsList"
 import AdminDashboard from "../pages/admin/AdminDashboard"
+import Settings from "../pages/admin/Settings"
 
 export default function AppRoutes() {
   return (
@@ -27,6 +28,7 @@ export default function AppRoutes() {
       <Route path="/billing" element={<BillingWorkspace />} />
       <Route path="/billing/all" element={<BillsList />} />
       <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/settings" element={<Settings />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

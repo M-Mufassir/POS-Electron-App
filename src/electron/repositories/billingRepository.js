@@ -74,6 +74,7 @@ export const selectAllBills = () => {
         subtotal,
         discount_type,
         discount_value,
+        tax_amount,
         total_amount,
         paid_amount,
         balance_amount,
@@ -104,7 +105,7 @@ export const selectUnitMultiplier = (productId, unitId) => {
 
 export const selectBillState = (billId) => {
   return getQuery(
-    `SELECT id, status, inventory_applied, invoice_no, user_id
+    `SELECT id, status, inventory_applied, invoice_no, user_id, paid_amount
      FROM bills
      WHERE id = ?`,
     [billId],
@@ -119,6 +120,7 @@ export const updateBillById = (billId, data) => {
          subtotal = ?,
          discount_type = ?,
          discount_value = ?,
+         tax_amount = ?,
          total_amount = ?,
          paid_amount = ?,
          balance_amount = ?,
@@ -130,11 +132,30 @@ export const updateBillById = (billId, data) => {
       data.subtotal,
       data.discount_type,
       data.discount_value,
+      data.tax_amount,
       data.total_amount,
       data.paid_amount,
       data.balance_amount,
       billId,
     ],
+  )
+}
+
+export const insertPayment = (billId, payment) => {
+  return runQuery(
+    `INSERT INTO payments (bill_id, payment_method, reference_no, amount, created_at)
+     VALUES (?, ?, ?, ?, datetime('now'))`,
+    [billId, payment.payment_method, payment.reference_no || null, payment.amount],
+  )
+}
+
+export const selectPaymentsByBillId = (billId) => {
+  return allQuery(
+    `SELECT id, bill_id, payment_method, reference_no, amount, created_at
+     FROM payments
+     WHERE bill_id = ?
+     ORDER BY created_at ASC, id ASC`,
+    [billId],
   )
 }
 

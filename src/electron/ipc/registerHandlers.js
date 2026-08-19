@@ -1,8 +1,10 @@
+import { dialog } from "electron"
 import * as productService from "../services/productService.js"
 import * as categoryService from "../services/categoryService.js"
 import * as unitService from "../services/unitService.js"
 import * as barcodeService from "../services/barcodeService.js"
 import * as billingService from "../services/billingService.js"
+import * as settingsService from "../services/settingsService.js"
 import { registerAuthHandlers, requireAuth, requirePermission } from "./authHandlers.js"
 
 export function registerIpcHandlers(ipcMain) {
@@ -58,6 +60,21 @@ export function registerIpcHandlers(ipcMain) {
     return await categoryService.addCategory(category)
   })
 
+  ipcMain.handle("update-category", async (event, { id, category }) => {
+    requirePermission(event, "manage_catalog")
+    return await categoryService.updateCategory(id, category)
+  })
+
+  ipcMain.handle("deactivate-category", async (event, id) => {
+    requirePermission(event, "manage_catalog")
+    return await categoryService.deactivateCategory(id)
+  })
+
+  ipcMain.handle("reactivate-category", async (event, id) => {
+    requirePermission(event, "manage_catalog")
+    return await categoryService.reactivateCategory(id)
+  })
+
   ipcMain.handle("get-all-units", async (event) => {
     requireAuth(event)
     return await unitService.getAllUnits()
@@ -71,6 +88,16 @@ export function registerIpcHandlers(ipcMain) {
   ipcMain.handle("add-unit", async (event, unit) => {
     requirePermission(event, "manage_catalog")
     return await unitService.addUnit(unit)
+  })
+
+  ipcMain.handle("update-unit", async (event, { id, unit }) => {
+    requirePermission(event, "manage_catalog")
+    return await unitService.updateUnit(id, unit)
+  })
+
+  ipcMain.handle("deactivate-unit", async (event, id) => {
+    requirePermission(event, "manage_catalog")
+    return await unitService.deactivateUnit(id)
   })
 
   ipcMain.handle("add-product-category", async (event, productId, categoryId) => {
@@ -111,6 +138,11 @@ export function registerIpcHandlers(ipcMain) {
   ipcMain.handle("delete-barcode", async (event, id) => {
     requirePermission(event, "manage_products")
     return await barcodeService.deleteBarcode(id)
+  })
+
+  ipcMain.handle("generate-barcode", async (event) => {
+    requirePermission(event, "manage_products")
+    return await barcodeService.generateBarcode()
   })
 
   ipcMain.handle("create-bill", async (event, payload) => {
@@ -156,5 +188,43 @@ export function registerIpcHandlers(ipcMain) {
   ipcMain.handle("delete-all-bills", async (event) => {
     requirePermission(event, "delete_bill_records")
     return await billingService.deleteAllBills()
+  })
+
+  ipcMain.handle("get-bill-payments", async (event, billId) => {
+    requireAuth(event)
+    return await billingService.getPaymentsForBill(billId)
+  })
+
+  // Shop branding is shown on the (unauthenticated) login screen too, so
+  // reading it does not require a session.
+  ipcMain.handle("get-settings", async () => {
+    return await settingsService.getSettings()
+  })
+
+  ipcMain.handle("get-logo-data-url", async () => {
+    return await settingsService.getLogoDataUrl()
+  })
+
+  ipcMain.handle("update-settings", async (event, payload) => {
+    requirePermission(event, "manage_settings")
+    return await settingsService.updateSettings(payload)
+  })
+
+  ipcMain.handle("select-logo-file", async (event) => {
+    requirePermission(event, "manage_settings")
+    const result = await dialog.showOpenDialog({
+      title: "Select shop logo",
+      properties: ["openFile"],
+      filters: [{ name: "Images", extensions: ["png", "jpg", "jpeg", "gif", "webp", "svg"] }],
+    })
+    if (result.canceled || result.filePaths.length === 0) {
+      return null
+    }
+    return result.filePaths[0]
+  })
+
+  ipcMain.handle("upload-logo", async (event, filePath) => {
+    requirePermission(event, "manage_settings")
+    return await settingsService.saveLogo(filePath)
   })
 }

@@ -8,6 +8,7 @@ import {
   deleteBillItemsByBillId,
   insertBill,
   insertBillItem,
+  insertPayment,
   markBillInventoryApplied,
   selectAllBills,
   selectBarcodeDetails,
@@ -15,12 +16,22 @@ import {
   selectBillItemsByBillId,
   selectBillState,
   selectOpenBillsSummary,
+  selectPaymentsByBillId,
   selectProductPricing,
   selectUnitMultiplier,
   updateBillById,
   updateBillStatus,
   updateProductStock,
 } from "../repositories/billingRepository.js"
+import { getSettings } from "./settingsService.js"
+
+const PAYMENT_EPSILON = 0.01
+const VALID_PAYMENT_METHODS = ["CASH", "CARD", "BANK", "ONLINE"]
+
+const normalizePaymentMethod = (value) => {
+  const normalized = String(value || "CASH").trim().toUpperCase()
+  return VALID_PAYMENT_METHODS.includes(normalized) ? normalized : "CASH"
+}
 
 const normalizeDiscountType = (value) => {
   const normalized = String(value || "").trim().toUpperCase()
@@ -237,6 +248,14 @@ export async function getOpenBills() {
   return await selectOpenBillsSummary()
 }
 
+export async function getPaymentsForBill(billId) {
+  const parsedId = Number(billId)
+  if (!Number.isFinite(parsedId) || parsedId <= 0) {
+    throw new Error("Invalid bill id")
+  }
+  return await selectPaymentsByBillId(parsedId)
+}
+
 export async function getAllBills() {
   return await selectAllBills()
 }
@@ -298,8 +317,15 @@ export async function saveBill(input = {}) {
     discountAmount = Math.min(subtotal, discountValue)
   }
 
-  const totalAmount = Math.max(0, subtotal - discountAmount)
+  const settings = await getSettings()
+  const taxRate = Math.min(100, Math.max(0, Number(settings.tax_rate) || 0))
+  const taxableAmount = Math.max(0, subtotal - discountAmount)
+  const taxAmount = taxableAmount * (taxRate / 100)
+
+  const totalAmount = Math.max(0, taxableAmount + taxAmount)
   const balanceAmount = Math.max(0, totalAmount - paidAmount)
+
+  const rawPayments = Array.isArray(input?.payments) ? input.payments : null
 
   let status = "OPEN"
   if (computedItems.length > 0) {
@@ -324,6 +350,35 @@ export async function saveBill(input = {}) {
     throw new Error("Add at least one item before taking payment")
   }
 
+  // A bill can be saved more than once as it's edited (Save, then later
+  // Complete). Payment rows must only be inserted for money newly received
+  // in *this* call, not the bill's full paid_amount-to-date, or resaving an
+  // unchanged bill would duplicate payment history on every save.
+  const previousPaidAmount = Math.max(0, Number(billRow.paid_amount || 0))
+  const paidDelta = paidAmount - previousPaidAmount
+
+  let payments = []
+  if (rawPayments) {
+    payments = rawPayments
+      .map((payment) => ({
+        payment_method: normalizePaymentMethod(payment?.method || payment?.payment_method),
+        reference_no: payment?.reference_no ? String(payment.reference_no).trim() : null,
+        amount: Math.max(0, Number(payment?.amount || 0)),
+      }))
+      .filter((payment) => payment.amount > 0)
+
+    const paymentsTotal = payments.reduce((sum, payment) => sum + payment.amount, 0)
+    if (Math.abs(paymentsTotal - Math.max(0, paidDelta)) > PAYMENT_EPSILON) {
+      throw new Error("Payment amounts must add up to the newly added paid amount")
+    }
+  } else if (paidDelta > PAYMENT_EPSILON) {
+    // Backward-compatible path for callers that only send a single
+    // paid_amount: record the newly-added portion as one CASH payment so
+    // the payments table still reflects reality without requiring every
+    // caller to be updated at once.
+    payments = [{ payment_method: "CASH", reference_no: null, amount: paidDelta }]
+  }
+
   if (inventoryApplied) {
     const persistedItems = await selectBillItemsByBillId(billId)
     if (!haveSameItems(computedItems, persistedItems)) {
@@ -343,6 +398,7 @@ export async function saveBill(input = {}) {
       subtotal,
       discount_type: discountType,
       discount_value: discountValue,
+      tax_amount: taxAmount,
       total_amount: totalAmount,
       paid_amount: paidAmount,
       balance_amount: balanceAmount,
@@ -352,6 +408,10 @@ export async function saveBill(input = {}) {
 
     for (const item of computedItems) {
       await insertBillItem(billId, item)
+    }
+
+    for (const payment of payments) {
+      await insertPayment(billId, payment)
     }
 
     if (!inventoryApplied && (status === "PARTIAL" || status === "PAID")) {
@@ -367,6 +427,7 @@ export async function saveBill(input = {}) {
       subtotal,
       discount_type: discountType,
       discount_value: discountValue,
+      tax_amount: taxAmount,
       total_amount: totalAmount,
       paid_amount: paidAmount,
       balance_amount: balanceAmount,

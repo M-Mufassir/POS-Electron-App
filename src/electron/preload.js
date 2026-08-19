@@ -12,9 +12,14 @@ contextBridge.exposeInMainWorld("api", {
   getAllCategories: () => ipcRenderer.invoke("get-all-categories"),
   getCategoriesWithProductCounts: () => ipcRenderer.invoke("get-categories-with-product-counts"),
   addCategory: (category) => ipcRenderer.invoke("add-category", category),
+  updateCategory: (id, category) => ipcRenderer.invoke("update-category", { id, category }),
+  deactivateCategory: (id) => ipcRenderer.invoke("deactivate-category", id),
+  reactivateCategory: (id) => ipcRenderer.invoke("reactivate-category", id),
   getAllUnits: () => ipcRenderer.invoke("get-all-units"),
   getUnitsWithProductCounts: () => ipcRenderer.invoke("get-units-with-product-counts"),
   addUnit: (unit) => ipcRenderer.invoke("add-unit", unit),
+  updateUnit: (id, unit) => ipcRenderer.invoke("update-unit", { id, unit }),
+  deactivateUnit: (id) => ipcRenderer.invoke("deactivate-unit", id),
 
   addProductCategory: (productId, categoryId) => ipcRenderer.invoke("add-product-category", productId, categoryId),
   getProductCategoriesByProductId: (productId) => ipcRenderer.invoke("get-product-categories-by-product-id", productId),
@@ -24,6 +29,7 @@ contextBridge.exposeInMainWorld("api", {
   addBarcode: (barcodeData) => ipcRenderer.invoke("add-barcode", barcodeData),
   updateBarcode: (id, barcode) => ipcRenderer.invoke("update-barcode", { id, barcode }),
   deleteBarcode: (id) => ipcRenderer.invoke("delete-barcode", id),
+  generateBarcode: () => ipcRenderer.invoke("generate-barcode"),
 
   createBill: (payload) => ipcRenderer.invoke("create-bill", payload),
   getBillById: (id) => ipcRenderer.invoke("get-bill-by-id", id),
@@ -34,6 +40,13 @@ contextBridge.exposeInMainWorld("api", {
   cancelBill: (billId) => ipcRenderer.invoke("cancel-bill", billId),
   deleteBill: (billId) => ipcRenderer.invoke("delete-bill", billId),
   deleteAllBills: () => ipcRenderer.invoke("delete-all-bills"),
+  getBillPayments: (billId) => ipcRenderer.invoke("get-bill-payments", billId),
+
+  getSettings: () => ipcRenderer.invoke("get-settings"),
+  getLogoDataUrl: () => ipcRenderer.invoke("get-logo-data-url"),
+  updateSettings: (payload) => ipcRenderer.invoke("update-settings", payload),
+  selectLogoFile: () => ipcRenderer.invoke("select-logo-file"),
+  uploadLogo: (filePath) => ipcRenderer.invoke("upload-logo", filePath),
 
   login: (credentials) => ipcRenderer.invoke("auth-login", credentials),
   logout: () => ipcRenderer.invoke("auth-logout"),

@@ -23,8 +23,8 @@
 }
 
 .bg-success-subtle {
-  background: rgba(22, 163, 74, 0.08);
-  border: 1px solid rgba(22, 163, 74, 0.2);
+  background: color-mix(in srgb, var(--success) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--success) 20%, transparent);
   padding: 1rem;
   border-radius: 0;
 }
@@ -41,8 +41,8 @@
 }
 
 .bg-danger-subtle {
-  background: rgba(220, 38, 38, 0.08);
-  border: 1px solid rgba(220, 38, 38, 0.2);
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 20%, transparent);
   padding: 1rem;
   border-radius: 0;
 }
@@ -59,8 +59,8 @@
 }
 
 .bg-warning-subtle {
-  background: rgba(202, 138, 4, 0.08);
-  border: 1px solid rgba(202, 138, 4, 0.2);
+  background: color-mix(in srgb, var(--warning) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning) 20%, transparent);
   padding: 1rem;
   border-radius: 0;
 }
@@ -159,22 +159,22 @@
 }
 
 .badge-success {
-  background: rgba(22, 163, 74, 0.15);
+  background: color-mix(in srgb, var(--success) 15%, transparent);
   color: var(--success);
 }
 
 .badge-danger {
-  background: rgba(220, 38, 38, 0.15);
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
   color: var(--danger);
 }
 
 .badge-warning {
-  background: rgba(202, 138, 4, 0.15);
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
   color: var(--warning);
 }
 
 .badge-primary {
-  background: rgba(37, 99, 235, 0.15);
+  background: color-mix(in srgb, var(--primary) 15%, transparent);
   color: var(--primary);
 }
 
@@ -188,27 +188,27 @@
 }
 
 .alert-success {
-  background: #f0fdf4;
+  background: color-mix(in srgb, var(--success) 10%, var(--bg-elevated));
   border-color: var(--success);
   color: var(--success-dark);
 }
 
 .alert-danger {
-  background: #fef2f2;
+  background: color-mix(in srgb, var(--danger) 10%, var(--bg-elevated));
   border-color: var(--danger);
   color: var(--danger-dark);
 }
 
 .alert-warning {
-  background: #fffbe6;
+  background: color-mix(in srgb, var(--warning) 10%, var(--bg-elevated));
   border-color: var(--warning);
-  color: #854d0e;
+  color: var(--warning-dark);
 }
 
 .alert-info {
-  background: #f0f9ff;
-  border-color: #0284c7;
-  color: #0c4a6e;
+  background: color-mix(in srgb, var(--primary) 10%, var(--bg-elevated));
+  border-color: var(--primary);
+  color: var(--primary-dark);
 }
 
 /* Loading Spinner (minimal) */
@@ -269,30 +269,7 @@
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.text-gray-500,
-.text-slate-500 {
-  color: #65727e;
-}
-
-.text-gray-600,
-.text-slate-600 {
-  color: #4f5a65;
-}
-
-.text-gray-700,
-.text-slate-700 {
-  color: #39444f;
-}
-
-.text-gray-900,
-.text-slate-800 {
-  color: #171c22;
-}
-
-.text-amber-900 {
-  color: #7a4c17;
-}
-
-.text-amber-950 {
-  color: #5d3509;
-}
+/* The text-gray, text-slate, and text-amber utility classes are generated
+   by Tailwind (see tailwind.config.js) with theme-aware color-mix() values.
+   No manual overrides here - a hardcoded rule this late in the cascade
+   would otherwise win over Tailwind's generated, theme-aware one. */

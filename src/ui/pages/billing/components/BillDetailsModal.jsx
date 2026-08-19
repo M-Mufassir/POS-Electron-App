@@ -1,4 +1,5 @@
-﻿import React from "react"
+import React, { useEffect, useState } from "react"
+import { useSettings } from "../../../context/SettingsContext"
 
 const formatCurrency = (value) => {
   const amount = Number(value || 0)
@@ -7,6 +8,31 @@ const formatCurrency = (value) => {
 }
 
 const BillDetailsModal = ({ bill, onClose }) => {
+  const { settings } = useSettings()
+  const currency = settings.currency_symbol || "Rs."
+  const [payments, setPayments] = useState([])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadPayments = async () => {
+      if (!bill?.id) return
+      try {
+        const data = await window.api.getBillPayments(bill.id)
+        if (!cancelled) {
+          setPayments(Array.isArray(data) ? data : [])
+        }
+      } catch (error) {
+        console.error("Failed to load bill payments:", error)
+      }
+    }
+
+    loadPayments()
+    return () => {
+      cancelled = true
+    }
+  }, [bill?.id])
+
   if (!bill) return null
 
   return (
@@ -28,7 +54,7 @@ const BillDetailsModal = ({ bill, onClose }) => {
               <div key={`${item.product_id}-${index}`} className="receipt-row">
                 <span>{item.product_name}</span>
                 <span>{item.quantity}</span>
-                <span>Rs. {formatCurrency(item.subtotal)}</span>
+                <span>{currency} {formatCurrency(item.subtotal)}</span>
               </div>
             ))}
           </div>
@@ -36,25 +62,47 @@ const BillDetailsModal = ({ bill, onClose }) => {
           <div className="receipt-total">
             <div className="receipt-row">
               <span>Subtotal</span>
-              <strong>Rs. {formatCurrency(bill.subtotal)}</strong>
+              <strong>{currency} {formatCurrency(bill.subtotal)}</strong>
             </div>
             <div className="receipt-row">
               <span>Discount</span>
-              <strong>Rs. {formatCurrency(bill.discount_value || 0)}</strong>
+              <strong>{currency} {formatCurrency(bill.discount_value || 0)}</strong>
+            </div>
+            <div className="receipt-row">
+              <span>Tax</span>
+              <strong>{currency} {formatCurrency(bill.tax_amount || 0)}</strong>
             </div>
             <div className="receipt-row">
               <span>Total</span>
-              <strong>Rs. {formatCurrency(bill.total_amount)}</strong>
+              <strong>{currency} {formatCurrency(bill.total_amount)}</strong>
             </div>
             <div className="receipt-row">
               <span>Paid</span>
-              <strong>Rs. {formatCurrency(bill.paid_amount)}</strong>
+              <strong>{currency} {formatCurrency(bill.paid_amount)}</strong>
             </div>
             <div className="receipt-row">
               <span>Balance</span>
-              <strong>Rs. {formatCurrency(bill.balance_amount)}</strong>
+              <strong>{currency} {formatCurrency(bill.balance_amount)}</strong>
             </div>
           </div>
+
+          {payments.length > 0 ? (
+            <div className="receipt-total">
+              <div className="receipt-row receipt-head">
+                <span>Payment History</span>
+                <span></span>
+              </div>
+              {payments.map((payment) => (
+                <div key={payment.id} className="receipt-row">
+                  <span>
+                    {payment.payment_method}
+                    {payment.reference_no ? ` (${payment.reference_no})` : ""}
+                  </span>
+                  <strong>{currency} {formatCurrency(payment.amount)}</strong>
+                </div>
+              ))}
+            </div>
+          ) : null}
 
           <div className="flex justify-end mt-4">
             <button className="pos-btn-secondary" onClick={onClose}>

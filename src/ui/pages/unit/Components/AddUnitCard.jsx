@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 
-function AddUnitCard({ isOpen, onClose, onSubmit, saving }) {
+function AddUnitCard({ isOpen, onClose, onSubmit, saving, editingUnit }) {
   const [name, setName] = useState("")
   const [symbol, setSymbol] = useState("")
   const [description, setDescription] = useState("")
@@ -10,12 +10,12 @@ function AddUnitCard({ isOpen, onClose, onSubmit, saving }) {
   useEffect(() => {
     if (!isOpen) return
 
-    setName("")
-    setSymbol("")
-    setDescription("")
-    setBaseMultiplier("1")
+    setName(editingUnit?.name || "")
+    setSymbol(editingUnit?.symbol || "")
+    setDescription(editingUnit?.description || "")
+    setBaseMultiplier(String(editingUnit?.base_multiplier ?? "1"))
     setError("")
-  }, [isOpen])
+  }, [isOpen, editingUnit])
 
   useEffect(() => {
     if (!isOpen) return
@@ -75,9 +75,11 @@ function AddUnitCard({ isOpen, onClose, onSubmit, saving }) {
       onMouseDown={handleBackdropMouseDown}
     >
       <div className="bg-white border border-slate-300 shadow-2xl w-full max-w-md p-6">
-        <h3 className="text-xl font-bold text-slate-800">Add New Unit</h3>
+        <h3 className="text-xl font-bold text-slate-800">
+          {editingUnit ? "Edit Unit" : "Add New Unit"}
+        </h3>
         <p className="text-sm text-slate-500 mt-1 mb-5">
-          Create a unit for product pricing and conversions.
+          {editingUnit ? "Update this unit's details." : "Create a unit for product pricing and conversions."}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -147,7 +149,7 @@ function AddUnitCard({ isOpen, onClose, onSubmit, saving }) {
               Cancel
             </button>
             <button type="submit" className="pos-btn-primary" disabled={saving}>
-              {saving ? "Saving..." : "Save Unit"}
+              {saving ? "Saving..." : editingUnit ? "Save Changes" : "Save Unit"}
             </button>
           </div>
         </form>

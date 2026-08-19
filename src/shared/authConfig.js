@@ -16,6 +16,7 @@ export const AUTH_ROLE_DEFINITIONS = Object.freeze([
       manage_products: true,
       manage_catalog: true,
       manage_users: true,
+      manage_settings: true,
     },
   },
   {
@@ -30,6 +31,7 @@ export const AUTH_ROLE_DEFINITIONS = Object.freeze([
       manage_products: false,
       manage_catalog: false,
       manage_users: false,
+      manage_settings: false,
     },
   },
   {
@@ -44,6 +46,7 @@ export const AUTH_ROLE_DEFINITIONS = Object.freeze([
       manage_products: true,
       manage_catalog: true,
       manage_users: false,
+      manage_settings: false,
     },
   },
 ])

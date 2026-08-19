@@ -49,3 +49,19 @@ export const insertUnit = (unit) => {
     ],
   )
 }
+
+export const updateUnitById = (unitId, unit) => {
+  return runQuery(
+    `UPDATE units
+     SET name = ?, symbol = ?, description = ?, unit_type = ?, base_multiplier = ?, updated_at = datetime('now')
+     WHERE id = ?`,
+    [unit.name, unit.symbol, unit.description, unit.unit_type, unit.base_multiplier, unitId],
+  )
+}
+
+export const updateUnitStatus = (unitId, status) => {
+  return runQuery(
+    `UPDATE units SET status = ?, updated_at = datetime('now') WHERE id = ?`,
+    [status, unitId],
+  )
+}

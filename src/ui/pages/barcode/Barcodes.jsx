@@ -27,6 +27,7 @@ export default function Barcodes() {
   const [loadingProducts, setLoadingProducts] = useState(true)
   const [loadingDetails, setLoadingDetails] = useState(false)
   const [savingUnitId, setSavingUnitId] = useState(null)
+  const [generatingUnitId, setGeneratingUnitId] = useState(null)
   const [deletingBarcodeId, setDeletingBarcodeId] = useState(null)
   const [banner, setBanner] = useState({ type: "", message: "" })
   const { hasPermission } = useAuth()
@@ -187,13 +188,27 @@ export default function Barcodes() {
       })
     } catch (error) {
       console.error("Failed to save barcode:", error)
-      const rawMessage = String(error?.message || "").toLowerCase()
-      const message = rawMessage.includes("unique")
+      const rawMessage = String(error?.message || "")
+      const message = rawMessage.toLowerCase().includes("unique")
         ? "This barcode already exists. Use a unique barcode value."
-        : "Failed to save barcode. Please try again."
+        : rawMessage || "Failed to save barcode. Please try again."
       setBanner({ type: "error", message })
     } finally {
       setSavingUnitId(null)
+    }
+  }
+
+  const handleGenerateBarcode = async (unit) => {
+    setBanner({ type: "", message: "" })
+    setGeneratingUnitId(Number(unit.id))
+    try {
+      const result = await window.api.generateBarcode()
+      handleDraftChange(unit.id, result?.barcode || "")
+    } catch (error) {
+      console.error("Failed to generate barcode:", error)
+      setBanner({ type: "error", message: error?.message || "Failed to generate a barcode." })
+    } finally {
+      setGeneratingUnitId(null)
     }
   }
 
@@ -371,6 +386,15 @@ export default function Barcodes() {
                             onChange={(event) => handleDraftChange(unit.id, event.target.value)}
                             disabled={loadingDetails}
                           />
+                          <button
+                            type="button"
+                            className="pos-btn-secondary"
+                            onClick={() => handleGenerateBarcode(unit)}
+                            disabled={generatingUnitId === Number(unit.id) || loadingDetails || !selectedProductId}
+                            title="Generate an internal barcode for products without a manufacturer barcode"
+                          >
+                            {generatingUnitId === Number(unit.id) ? "Generating..." : "Generate"}
+                          </button>
                           <button
                             type="submit"
                             className="pos-btn-primary"

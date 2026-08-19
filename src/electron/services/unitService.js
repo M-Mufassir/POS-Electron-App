@@ -3,6 +3,8 @@
   selectAllUnits,
   selectUnitById,
   selectUnitsWithProductCounts,
+  updateUnitById,
+  updateUnitStatus,
 } from "../repositories/unitRepository.js"
 
 export async function getAllUnits() {
@@ -54,4 +56,51 @@ export async function addUnit(unitInput) {
     unit_type: unitType,
     base_multiplier: parsedBaseMultiplier,
   }
+}
+
+export async function updateUnit(id, unitInput) {
+  const parsedId = Number(id)
+  if (!Number.isFinite(parsedId) || parsedId <= 0) {
+    throw new Error("Invalid unit ID")
+  }
+
+  const name = String(unitInput?.name || "").trim()
+  const symbol = String(unitInput?.symbol || "").trim()
+  const description = String(unitInput?.description || "").trim()
+  const unitType = String(unitInput?.unit_type || "COUNT").trim()
+  const parsedBaseMultiplier = Number(unitInput?.base_multiplier ?? 1)
+
+  if (!name || !symbol) {
+    throw new Error("Name and symbol are required")
+  }
+  if (!Number.isFinite(parsedBaseMultiplier) || parsedBaseMultiplier <= 0) {
+    throw new Error("Base multiplier must be a positive number")
+  }
+
+  const result = await updateUnitById(parsedId, {
+    name,
+    symbol,
+    description,
+    unit_type: unitType,
+    base_multiplier: parsedBaseMultiplier,
+  })
+
+  if (result.changes === 0) {
+    throw new Error("Unit not found")
+  }
+
+  return { id: parsedId, name, symbol, description, unit_type: unitType, base_multiplier: parsedBaseMultiplier }
+}
+
+export async function deactivateUnit(id) {
+  const parsedId = Number(id)
+  if (!Number.isFinite(parsedId) || parsedId <= 0) {
+    throw new Error("Invalid unit ID")
+  }
+
+  const result = await updateUnitStatus(parsedId, 0)
+  if (result.changes === 0) {
+    throw new Error("Unit not found")
+  }
+  return { ok: true }
 }

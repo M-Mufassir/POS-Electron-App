@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
+import { useSettings } from "../context/SettingsContext"
 
 const Navbar = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const { user, hasPermission, logout } = useAuth()
+  const { settings, logoDataUrl } = useSettings()
 
   const menuItems = useMemo(
     () => [
@@ -43,6 +45,11 @@ const Navbar = () => {
         path: "/admin",
         permission: "manage_users",
       },
+      {
+        label: "Settings",
+        path: "/settings",
+        permission: "manage_settings",
+      },
     ],
     [],
   )
@@ -56,7 +63,8 @@ const Navbar = () => {
     <nav className={`pos-navbar ${isCollapsed ? "collapsed" : ""}`}>
       <div className="navbar-header">
         <div className="navbar-logo">
-          <span className="logo-text">ZILLIT | POS</span>
+          {logoDataUrl ? <img src={logoDataUrl} alt="" className="navbar-logo-image" /> : null}
+          <span className="logo-text">{settings.shop_name || "ZILLIT | POS"}</span>
         </div>
         <button
           className="navbar-toggle"
@@ -99,7 +107,7 @@ const Navbar = () => {
         >
           Contact
         </button>
-        <p className="footer-poweredby">Powered by ZILLIT</p>
+        <p className="footer-poweredby">Powered by MR Solutions</p>
         <p className="navbar-version">v1.0.0</p>
       </div>
     </nav>

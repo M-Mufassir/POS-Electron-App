@@ -5,6 +5,7 @@ import ReactDOM from "react-dom/client"
 import { BrowserRouter, HashRouter } from "react-router-dom"
 import App from "./App"
 import { AuthProvider } from "./context/AuthContext"
+import { SettingsProvider } from "./context/SettingsContext"
 
 // Import all CSS files
 import "./css/index.css"
@@ -23,9 +24,11 @@ const Router = window.location.protocol === "file:" ? HashRouter : BrowserRouter
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <Router>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      <SettingsProvider>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </SettingsProvider>
     </Router>
   </React.StrictMode>
 )

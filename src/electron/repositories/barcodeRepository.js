@@ -1,4 +1,4 @@
-﻿import { allQuery, runQuery } from "./dbUtils.js"
+﻿import { allQuery, getQuery, runQuery } from "./dbUtils.js"
 
 export const selectBarcodesByProductId = (productId) => {
   return allQuery(
@@ -46,6 +46,17 @@ export const selectAssignableUnitsByProductId = (productId) => {
      ORDER BY u.name COLLATE NOCASE ASC`,
     [productId, productId],
   )
+}
+
+export const selectBarcodeByProductAndUnit = (productId, unitId) => {
+  return getQuery(
+    `SELECT id, product_id, unit_id, barcode FROM barCodes WHERE product_id = ? AND unit_id = ?`,
+    [productId, unitId],
+  )
+}
+
+export const selectBarcodeByValue = (barcodeValue) => {
+  return getQuery(`SELECT id, product_id, unit_id, barcode FROM barCodes WHERE barcode = ?`, [barcodeValue])
 }
 
 export const insertBarcode = (barcode) => {

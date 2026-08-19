@@ -14,7 +14,7 @@
 .pos-input {
   width: 100%;
   padding: 0.82rem 1rem;
-  background: rgba(255, 255, 255, 0.95);
+  background: color-mix(in srgb, var(--bg-elevated) 95%, transparent);
   border: 1px solid var(--border-gray-300);
   border-radius: 14px;
   color: var(--text-body);
@@ -32,12 +32,12 @@
 .pos-input:focus {
   outline: none;
   border-color: var(--primary-light);
-  box-shadow: 0 0 0 3px rgba(91, 102, 112, 0.14);
-  background: #ffffff;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 14%, transparent);
+  background: var(--bg-elevated);
 }
 
 .pos-input:disabled {
-  background: rgba(232, 235, 239, 0.7);
+  background: color-mix(in srgb, var(--bg-soft) 70%, transparent);
   color: var(--text-hint);
   cursor: not-allowed;
 }

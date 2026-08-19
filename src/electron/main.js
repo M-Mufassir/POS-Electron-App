@@ -16,11 +16,17 @@ function createWindow() {
     width: 1200,
     height: 800,
     autoHideMenuBar: true, // hides menu
+    show: false, // shown on 'ready-to-show', already maximized, to avoid a small-then-big flash
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false
     }
+  })
+
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.maximize()
+    mainWindow.show()
   })
 
   if (isDev()) {

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import Banner from "../../components/Banner"
 import { useAuth } from "../../context/AuthContext"
+import { useSettings } from "../../context/SettingsContext"
 import { formatAppDateTime } from "../../utils/dateTime"
 
 const formatCurrency = (value) => {
@@ -9,6 +10,8 @@ const formatCurrency = (value) => {
   if (!Number.isFinite(amount)) return "0.00"
   return amount.toFixed(2)
 }
+
+const PAYMENT_METHODS = ["CASH", "CARD", "BANK", "ONLINE"]
 
 const buildDraftFromBill = (bill) => {
   if (!bill) return null
@@ -29,7 +32,7 @@ const buildDraftFromBill = (bill) => {
   }
 }
 
-const computeTotals = (draft) => {
+const computeTotals = (draft, taxRatePercent = 0) => {
   const subtotal = (draft.items || []).reduce((sum, item) => sum + Number(item.subtotal || 0), 0)
   let discountAmount = 0
 
@@ -43,12 +46,14 @@ const computeTotals = (draft) => {
     }
   }
 
-  const total = Math.max(0, subtotal - discountAmount)
+  const taxableAmount = Math.max(0, subtotal - discountAmount)
+  const taxAmount = taxableAmount * (Math.min(100, Math.max(0, Number(taxRatePercent) || 0)) / 100)
+  const total = Math.max(0, taxableAmount + taxAmount)
   const paid = Math.max(0, Number(draft.paid_amount || 0))
   const balance = Math.max(0, total - paid)
   const change = Math.max(0, paid - total)
 
-  return { subtotal, discountAmount, total, paid, balance, change }
+  return { subtotal, discountAmount, taxAmount, total, paid, balance, change }
 }
 
 const buildUnitOptions = (details) => {
@@ -137,16 +142,21 @@ const ReceiptModal = ({ stage, data }) => {
         ? "Printing receipt..."
         : "Preparing receipt..."
 
+  const shop = data.shop || {}
+  const currency = shop.currency_symbol || "Rs."
+
   return (
     <div className="receipt-overlay">
       <div className="receipt-card receipt-slk">
         <div className={`receipt-status ${stage}`}>{stageText}</div>
         <div className="receipt-body">
           <div className="receipt-header">
-            <h3>Anver Stores</h3>
-            <p>ZILLIT | POS</p>
-            <p>No. 21, Main Street, Colombo</p>
-            <p>Tel: 011-2345678</p>
+            {shop.logoDataUrl ? (
+              <img src={shop.logoDataUrl} alt="" className="receipt-logo" />
+            ) : null}
+            <h3>{shop.shop_name || "My Store"}</h3>
+            {shop.shop_address ? <p>{shop.shop_address}</p> : null}
+            {shop.shop_phone ? <p>Tel: {shop.shop_phone}</p> : null}
           </div>
           <div className="receipt-meta-block">
             <span>Invoice: {data.invoice_no}</span>
@@ -165,8 +175,8 @@ const ReceiptModal = ({ stage, data }) => {
               <div key={`${item.product_id}-${index}`} className="receipt-row">
                 <span>{item.product_name}</span>
                 <span>{item.quantity}</span>
-                <span>Rs. {formatCurrency(item.unit_price)}</span>
-                <span>Rs. {formatCurrency(item.subtotal)}</span>
+                <span>{currency} {formatCurrency(item.unit_price)}</span>
+                <span>{currency} {formatCurrency(item.subtotal)}</span>
               </div>
             ))}
           </div>
@@ -174,29 +184,45 @@ const ReceiptModal = ({ stage, data }) => {
           <div className="receipt-total">
             <div className="receipt-row">
               <span>Subtotal</span>
-              <strong>Rs. {formatCurrency(data?.totals?.subtotal || 0)}</strong>
+              <strong>{currency} {formatCurrency(data?.totals?.subtotal || 0)}</strong>
             </div>
             <div className="receipt-row">
               <span>Discount</span>
-              <strong>Rs. {formatCurrency(data?.totals?.discountAmount || 0)}</strong>
+              <strong>{currency} {formatCurrency(data?.totals?.discountAmount || 0)}</strong>
+            </div>
+            <div className="receipt-row">
+              <span>Tax</span>
+              <strong>{currency} {formatCurrency(data?.totals?.taxAmount || 0)}</strong>
             </div>
             <div className="receipt-row">
               <span>Total</span>
-              <strong>Rs. {formatCurrency(data?.totals?.total || 0)}</strong>
+              <strong>{currency} {formatCurrency(data?.totals?.total || 0)}</strong>
             </div>
             <div className="receipt-row">
               <span>Paid</span>
-              <strong>Rs. {formatCurrency(data?.paid_amount || data?.totals?.total || 0)}</strong>
+              <strong>{currency} {formatCurrency(data?.paid_amount || data?.totals?.total || 0)}</strong>
             </div>
             <div className="receipt-row">
               <span>Balance</span>
-              <strong>Rs. {formatCurrency(data?.balance_amount || data?.totals?.balance || 0)}</strong>
+              <strong>{currency} {formatCurrency(data?.balance_amount || data?.totals?.balance || 0)}</strong>
             </div>
             <div className="receipt-row">
               <span>Change</span>
-              <strong>Rs. {formatCurrency(data?.totals?.change || 0)}</strong>
+              <strong>{currency} {formatCurrency(data?.totals?.change || 0)}</strong>
             </div>
           </div>
+
+          {(data.payments || []).length > 0 ? (
+            <div className="receipt-total">
+              {data.payments.map((payment, index) => (
+                <div key={`payment-${index}`} className="receipt-row">
+                  <span>{payment.payment_method}{payment.reference_no ? ` (${payment.reference_no})` : ""}</span>
+                  <strong>{currency} {formatCurrency(payment.amount)}</strong>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
           <div className="receipt-footer">
             <p>Thank you for shopping with us.</p>
             <p>Goods once sold are not returnable.</p>
@@ -233,6 +259,11 @@ const BillEditor = ({
     stage: "idle",
     data: null,
   })
+  const { settings, logoDataUrl } = useSettings()
+  const [paymentEntries, setPaymentEntries] = useState([])
+  const [paymentMethodDraft, setPaymentMethodDraft] = useState("CASH")
+  const [paymentAmountDraft, setPaymentAmountDraft] = useState("")
+  const [paymentReferenceDraft, setPaymentReferenceDraft] = useState("")
   const barcodeInputRef = useRef(null)
   const productSearchRef = useRef(null)
   const unitSelectRef = useRef(null)
@@ -266,7 +297,16 @@ const BillEditor = ({
     setHighlightedProductIndex(matches.length > 0 ? 0 : -1)
   }, [productQuery, products])
 
-  const totals = useMemo(() => computeTotals(draft), [draft])
+  const pendingPaymentsTotal = useMemo(
+    () => paymentEntries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0),
+    [paymentEntries],
+  )
+  const effectivePaidAmount = Math.max(0, Number(draft.paid_amount || 0) + pendingPaymentsTotal)
+  const totals = useMemo(
+    () => computeTotals({ ...draft, paid_amount: effectivePaidAmount }, settings.tax_rate),
+    [draft, effectivePaidAmount, settings.tax_rate],
+  )
+  const currencySymbol = settings.currency_symbol || "Rs."
   const selectedUnit = useMemo(
     () => availableUnits.find((unit) => Number(unit.id) === Number(selectedUnitId)),
     [availableUnits, selectedUnitId],
@@ -691,10 +731,39 @@ const BillEditor = ({
     onDraftChange({ ...draft, items: updatedItems })
   }
 
+  const handleAddPayment = () => {
+    const amount = Number(paymentAmountDraft)
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setBanner({ type: "warning", message: "Enter a payment amount greater than 0." })
+      return
+    }
+
+    setPaymentEntries((prev) => [
+      ...prev,
+      { method: paymentMethodDraft, amount, reference_no: paymentReferenceDraft.trim() || null },
+    ])
+    setPaymentAmountDraft("")
+    setPaymentReferenceDraft("")
+  }
+
+  const handleRemovePayment = (index) => {
+    setPaymentEntries((prev) => prev.filter((_, entryIndex) => entryIndex !== index))
+  }
+
+  const buildSaveOverrides = () => ({
+    paid_amount: effectivePaidAmount,
+    payments: paymentEntries.map((entry) => ({
+      method: entry.method,
+      amount: entry.amount,
+      reference_no: entry.reference_no,
+    })),
+  })
+
   const handleSave = async () => {
     try {
-      const savedBill = await onSave()
+      const savedBill = await onSave(buildSaveOverrides())
       if (savedBill) {
+        setPaymentEntries([])
         setBanner({ type: "success", message: "Bill saved successfully." })
       }
     } catch (error) {
@@ -704,7 +773,13 @@ const BillEditor = ({
   }
 
   const handleComplete = async () => {
-    const completedBill = await onComplete()
+    const paymentsForReceipt = paymentEntries.map((entry) => ({
+      payment_method: entry.method,
+      amount: entry.amount,
+      reference_no: entry.reference_no,
+    }))
+    const completedBill = await onComplete(buildSaveOverrides())
+    setPaymentEntries([])
     const shouldCloseAfterComplete = completedBill?.status === "PAID"
     const receiptTotals = computeTotals({
       ...draft,
@@ -713,7 +788,7 @@ const BillEditor = ({
         ...completedBill,
         items: draft.items,
       }),
-    })
+    }, settings.tax_rate)
 
     if (!printReceipt) {
       if (shouldCloseAfterComplete) {
@@ -732,6 +807,8 @@ const BillEditor = ({
       ...draft,
       ...completedBill,
       totals: receiptTotals,
+      payments: paymentsForReceipt,
+      shop: { ...settings, logoDataUrl },
       printed_at: new Date().toISOString(),
     }
 
@@ -786,11 +863,6 @@ const BillEditor = ({
     }
   }
 
-  const handlePaidAmountKeyDown = (event) => {
-    if (event.key !== "Enter") return
-    event.preventDefault()
-    completeButtonRef.current?.focus()
-  }
 
   const handleProductSearchKeyDown = async (event) => {
     if (event.key === "ArrowDown") {
@@ -875,15 +947,15 @@ const BillEditor = ({
         </div>
         <div className="page-summary-card info">
           <span className="page-summary-label">Subtotal</span>
-          <strong>Rs. {formatCurrency(editorSummary.subtotal)}</strong>
+          <strong>{currencySymbol} {formatCurrency(editorSummary.subtotal)}</strong>
         </div>
         <div className="page-summary-card accent">
           <span className="page-summary-label">Bill Total</span>
-          <strong>Rs. {formatCurrency(editorSummary.total)}</strong>
+          <strong>{currencySymbol} {formatCurrency(editorSummary.total)}</strong>
         </div>
         <div className="page-summary-card danger">
           <span className="page-summary-label">Outstanding</span>
-          <strong>Rs. {formatCurrency(editorSummary.balance)}</strong>
+          <strong>{currencySymbol} {formatCurrency(editorSummary.balance)}</strong>
         </div>
       </div>
 
@@ -1004,13 +1076,13 @@ const BillEditor = ({
                 </td>
                 <td className="billing-entry-cell-strong">
                   {selectedProduct && selectedUnit
-                    ? `Rs. ${formatCurrency(selectedUnitPrice)}`
+                    ? `${currencySymbol} ${formatCurrency(selectedUnitPrice)}`
                     : "Select product"}
                 </td>
                 <td className="billing-entry-cell-strong">
                   {selectedProduct && selectedUnit
-                    ? `Rs. ${formatCurrency(selectedLineTotal)}`
-                    : "Rs. 0.00"}
+                    ? `${currencySymbol} ${formatCurrency(selectedLineTotal)}`
+                    : `${currencySymbol} 0.00`}
                 </td>
                 <td>
                   <button
@@ -1039,8 +1111,8 @@ const BillEditor = ({
                       disabled={isInventoryLocked}
                     />
                   </td>
-                  <td>Rs. {formatCurrency(item.unit_price)}</td>
-                  <td>Rs. {formatCurrency(item.subtotal)}</td>
+                  <td>{currencySymbol} {formatCurrency(item.unit_price)}</td>
+                  <td>{currencySymbol} {formatCurrency(item.subtotal)}</td>
                   <td>
                     <button
                       type="button"
@@ -1124,18 +1196,59 @@ const BillEditor = ({
             />
           </div>
 
-          <div className="pos-form-group">
-            <label className="pos-label">Paid Amount</label>
+        </div>
+
+        <div className="billing-payment-entry">
+          <label className="pos-label">Record Payment</label>
+          <div className="flex flex-wrap gap-2">
+            <select
+              className="pos-input"
+              value={paymentMethodDraft}
+              onChange={(e) => setPaymentMethodDraft(e.target.value)}
+            >
+              {PAYMENT_METHODS.map((method) => (
+                <option key={method} value={method}>{method}</option>
+              ))}
+            </select>
             <input
               type="number"
               min="0"
               step="any"
               className="pos-input"
-              value={draft.paid_amount}
-              onChange={(e) => onDraftChange({ ...draft, paid_amount: e.target.value })}
-              onKeyDown={handlePaidAmountKeyDown}
+              placeholder="Amount"
+              value={paymentAmountDraft}
+              onChange={(e) => setPaymentAmountDraft(e.target.value)}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter") return
+                event.preventDefault()
+                handleAddPayment()
+              }}
             />
+            <input
+              type="text"
+              className="pos-input"
+              placeholder="Reference (optional)"
+              value={paymentReferenceDraft}
+              onChange={(e) => setPaymentReferenceDraft(e.target.value)}
+            />
+            <button type="button" className="pos-btn-secondary" onClick={handleAddPayment}>
+              Add Payment
+            </button>
           </div>
+
+          {paymentEntries.length > 0 ? (
+            <ul className="billing-payment-list">
+              {paymentEntries.map((entry, index) => (
+                <li key={`${entry.method}-${index}`}>
+                  <span>{entry.method}{entry.reference_no ? ` (${entry.reference_no})` : ""}</span>
+                  <span>{currencySymbol} {formatCurrency(entry.amount)}</span>
+                  <button type="button" className="pos-btn-danger" onClick={() => handleRemovePayment(index)}>
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
 
         <div className="billing-totals-table-wrap">
@@ -1143,27 +1256,31 @@ const BillEditor = ({
             <tbody>
               <tr>
                 <td>Subtotal</td>
-                <td>Rs. {formatCurrency(totals.subtotal)}</td>
+                <td>{currencySymbol} {formatCurrency(totals.subtotal)}</td>
               </tr>
               <tr>
                 <td>Discount</td>
-                <td>Rs. {formatCurrency(totals.discountAmount)}</td>
+                <td>{currencySymbol} {formatCurrency(totals.discountAmount)}</td>
+              </tr>
+              <tr>
+                <td>Tax{settings.tax_rate ? ` (${settings.tax_rate}%)` : ""}</td>
+                <td>{currencySymbol} {formatCurrency(totals.taxAmount)}</td>
               </tr>
               <tr>
                 <td>Total</td>
-                <td>Rs. {formatCurrency(totals.total)}</td>
+                <td>{currencySymbol} {formatCurrency(totals.total)}</td>
               </tr>
               <tr>
-                <td>Paid</td>
-                <td>Rs. {formatCurrency(totals.paid)}</td>
+                <td>Paid (incl. this payment)</td>
+                <td>{currencySymbol} {formatCurrency(totals.paid)}</td>
               </tr>
               <tr className="billing-total-emphasis">
                 <td>Balance</td>
-                <td>Rs. {formatCurrency(totals.balance)}</td>
+                <td>{currencySymbol} {formatCurrency(totals.balance)}</td>
               </tr>
               <tr className="billing-total-positive">
                 <td>Change To Give</td>
-                <td>Rs. {formatCurrency(totals.change)}</td>
+                <td>{currencySymbol} {formatCurrency(totals.change)}</td>
               </tr>
             </tbody>
           </table>
@@ -1207,6 +1324,8 @@ const BillEditor = ({
 export default function BillingWorkspace() {
   const navigate = useNavigate()
   const { hasPermission } = useAuth()
+  const { settings: billingSettings } = useSettings()
+  const currencySymbol = billingSettings.currency_symbol || "Rs."
   const [openBills, setOpenBills] = useState([])
   const [products, setProducts] = useState([])
   const [billTabs, setBillTabs] = useState([])
@@ -1319,14 +1438,15 @@ export default function BillingWorkspace() {
     }))
   }
 
-  const handleSaveBill = async (draft) => {
+  const handleSaveBill = async (draft, overrides = {}) => {
     const validItems = draft.items.filter((item) => Number(item.quantity || 0) > 0)
     const payload = {
       id: draft.id,
       customer_name: draft.customer_name,
       discount_type: draft.discount_enabled ? draft.discount_type : null,
       discount_value: draft.discount_enabled ? draft.discount_value : 0,
-      paid_amount: draft.paid_amount,
+      paid_amount: overrides.paid_amount ?? draft.paid_amount,
+      payments: overrides.payments,
       items: validItems.map((item) => ({
         product_id: item.product_id,
         unit_id: item.unit_id,
@@ -1347,8 +1467,8 @@ export default function BillingWorkspace() {
     return refreshed
   }
 
-  const handleCompleteBill = async (draft) => {
-    return await handleSaveBill(draft)
+  const handleCompleteBill = async (draft, overrides = {}) => {
+    return await handleSaveBill(draft, overrides)
   }
 
   const handleCancelBill = async (draft) => {
@@ -1416,7 +1536,7 @@ export default function BillingWorkspace() {
             </div>
             <div className="page-summary-card danger">
               <span className="page-summary-label">Outstanding</span>
-              <strong>Rs. {formatCurrency(openBillSummary.outstandingAmount)}</strong>
+              <strong>{currencySymbol} {formatCurrency(openBillSummary.outstandingAmount)}</strong>
             </div>
           </div>
 
@@ -1477,8 +1597,8 @@ export default function BillingWorkspace() {
                     </div>
                   </div>
                   <div className="billing-card-footer">
-                    <span>Total: Rs. {formatCurrency(bill.total_amount)}</span>
-                    <span>Balance: Rs. {formatCurrency(bill.balance_amount)}</span>
+                    <span>Total: {currencySymbol} {formatCurrency(bill.total_amount)}</span>
+                    <span>Balance: {currencySymbol} {formatCurrency(bill.balance_amount)}</span>
                   </div>
                 </button>
               )
@@ -1521,8 +1641,8 @@ export default function BillingWorkspace() {
             <BillEditor
               draft={activeDraft}
               onDraftChange={handleDraftChange}
-              onSave={() => handleSaveBill(activeDraft)}
-              onComplete={() => handleCompleteBill(activeDraft)}
+              onSave={(overrides) => handleSaveBill(activeDraft, overrides)}
+              onComplete={(overrides) => handleCompleteBill(activeDraft, overrides)}
               onCancel={() => handleCancelBill(activeDraft)}
               onDelete={() => handleDeleteBill(activeDraft)}
               onAfterComplete={() => handleCloseTab(activeDraft.id)}

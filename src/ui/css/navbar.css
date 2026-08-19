@@ -1,8 +1,6 @@
 .pos-navbar {
   width: 260px;
-  background:
-    linear-gradient(180deg, rgba(61, 69, 78, 0.98), rgba(35, 40, 46, 0.98)),
-    #2a2f35;
+  background: linear-gradient(180deg, var(--primary), var(--primary-dark));
   border-right: 1px solid var(--border-gray-200);
   display: flex;
   flex-direction: column;
@@ -34,6 +32,12 @@
   font-size: 1.2rem;
   font-weight: var(--fw-bold);
   letter-spacing: 0.04em;
+}
+
+.navbar-logo-image {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
 }
 
 .navbar-toggle {

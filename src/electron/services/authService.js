@@ -1,4 +1,6 @@
 import crypto from "crypto"
+import { promisify } from "util"
+import { Buffer } from "buffer"
 import { runQuery } from "../repositories/dbUtils.js"
 import {
   insertUser,
@@ -11,9 +13,47 @@ import {
   selectUsersWithRoles,
 } from "../repositories/userRepository.js"
 import { AUTH_ROLE_DEFINITIONS, DEFAULT_ADMIN_CREDENTIALS } from "../../shared/authConfig.js"
+import { assertLoginNotLocked, recordFailedLogin, resetFailedLogins } from "./sessionService.js"
 
-const hashPassword = (password) => {
+const scrypt = promisify(crypto.scrypt)
+const SCRYPT_KEYLEN = 64
+
+// Passwords are hashed as scrypt$<saltHex>$<hashHex> - a random salt per
+// password defeats rainbow-table attacks, unlike the plain sha256 this
+// replaces. Older sha256 (and, from the very first bootstrap flow,
+// plaintext) rows are still recognized by verifyPassword below and
+// transparently upgraded to this format on next successful login.
+const hashPasswordScrypt = async (password) => {
+  const salt = crypto.randomBytes(16).toString("hex")
+  const derivedKey = await scrypt(password, salt, SCRYPT_KEYLEN)
+  return `scrypt$${salt}$${derivedKey.toString("hex")}`
+}
+
+const hashPasswordLegacySha256 = (password) => {
   return crypto.createHash("sha256").update(password).digest("hex")
+}
+
+const isScryptFormat = (storedPassword) => String(storedPassword || "").startsWith("scrypt$")
+const isLegacySha256Format = (storedPassword) => /^[0-9a-f]{64}$/i.test(String(storedPassword || ""))
+
+const verifyPassword = async (storedPassword, rawPassword) => {
+  const stored = String(storedPassword || "")
+
+  if (isScryptFormat(stored)) {
+    const [, salt, hashHex] = stored.split("$")
+    if (!salt || !hashHex) return false
+    const derivedKey = await scrypt(rawPassword, salt, SCRYPT_KEYLEN)
+    const storedBuffer = Buffer.from(hashHex, "hex")
+    if (storedBuffer.length !== derivedKey.length) return false
+    return crypto.timingSafeEqual(storedBuffer, derivedKey)
+  }
+
+  if (isLegacySha256Format(stored)) {
+    return stored === hashPasswordLegacySha256(rawPassword)
+  }
+
+  // Oldest rows (e.g. seeded directly) may still be plaintext.
+  return stored === rawPassword
 }
 
 const toAppUser = (user) => ({
@@ -66,12 +106,15 @@ export async function authenticateUser(username, password) {
     throw new Error("Username and password are required")
   }
 
+  assertLoginNotLocked(normalizedUsername)
+
   const totalUsers = await countPersistedUsers()
   if (
     totalUsers === 0 &&
     normalizedUsername.toLowerCase() === DEFAULT_ADMIN_CREDENTIALS.username.toLowerCase() &&
     rawPassword === DEFAULT_ADMIN_CREDENTIALS.password
   ) {
+    resetFailedLogins(normalizedUsername)
     return {
       id: "bootstrap-admin",
       username: DEFAULT_ADMIN_CREDENTIALS.username,
@@ -86,19 +129,24 @@ export async function authenticateUser(username, password) {
 
   const user = await selectUserByUsername(normalizedUsername)
   if (!user) {
+    recordFailedLogin(normalizedUsername)
     throw new Error("Invalid credentials")
   }
   if (Number(user.status ?? 1) !== 1) {
     throw new Error("User is inactive")
   }
 
-  const hashed = hashPassword(rawPassword)
+  const passwordMatches = await verifyPassword(user.password, rawPassword)
+  if (!passwordMatches) {
+    recordFailedLogin(normalizedUsername)
+    throw new Error("Invalid credentials")
+  }
 
-  if (user.password !== hashed) {
-    if (user.password !== rawPassword) {
-      throw new Error("Invalid credentials")
-    }
-    await updateUserPasswordById(user.id, hashed, Number(user.must_reset_password || 0))
+  resetFailedLogins(normalizedUsername)
+
+  if (!isScryptFormat(user.password)) {
+    const upgradedHash = await hashPasswordScrypt(rawPassword)
+    await updateUserPasswordById(user.id, upgradedHash, Number(user.must_reset_password || 0))
   }
 
   return toAppUser(user)
@@ -121,10 +169,10 @@ export async function resetUserPassword(targetUserId, newPassword, forceReset = 
   if (!Number.isFinite(parsedId) || parsedId <= 0) {
     throw new Error("Invalid user id")
   }
-  const hashed = hashPassword(String(newPassword || ""))
   if (!String(newPassword || "").trim()) {
     throw new Error("Password is required")
   }
+  const hashed = await hashPasswordScrypt(String(newPassword || ""))
   await updateUserPasswordById(parsedId, hashed, Number(forceReset) === 1 ? 1 : 0)
 }
 
@@ -175,7 +223,7 @@ export async function createUser(input) {
     throw new Error("Selected role does not exist")
   }
 
-  const hashed = hashPassword(password)
+  const hashed = await hashPasswordScrypt(password)
   const result = await insertUser({
     username,
     email: email || null,

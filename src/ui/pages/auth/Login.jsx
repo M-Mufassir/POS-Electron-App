@@ -2,10 +2,12 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import Banner from "../../components/Banner"
 import { useAuth } from "../../context/AuthContext"
+import { useSettings } from "../../context/SettingsContext"
 
 export default function Login() {
   const navigate = useNavigate()
   const { login, authStatus } = useAuth()
+  const { settings, logoDataUrl } = useSettings()
   const [form, setForm] = useState({ username: "", password: "" })
   const [banner, setBanner] = useState({ type: "", message: "" })
   const [loading, setLoading] = useState(false)
@@ -28,8 +30,11 @@ export default function Login() {
   return (
     <div className="pos-container flex items-center justify-center h-screen">
       <div className="pos-card w-full max-w-md">
-        <h2 className="pos-section-title">Sign In</h2>
-        <p className="pos-section-subtitle">Access the POS workspace</p>
+        {logoDataUrl ? (
+          <img src={logoDataUrl} alt="" className="mx-auto mb-3 h-14 w-14 object-contain" />
+        ) : null}
+        <h2 className="pos-section-title text-center">{settings.shop_name || "Sign In"}</h2>
+        <p className="pos-section-subtitle text-center">Access the POS workspace</p>
         {authStatus.can_use_default_admin && (
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 mt-4 text-sm text-amber-900">
             <div className="font-semibold">First login detected</div>

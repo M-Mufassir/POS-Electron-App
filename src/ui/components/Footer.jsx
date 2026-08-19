@@ -1,15 +1,18 @@
 import React from "react"
+import { useSettings } from "../context/SettingsContext"
 
 const Footer = () => {
   const currentYear = new Date().getFullYear()
+  const { settings } = useSettings()
 
   return (
     <footer className="pos-footer">
       <div className="footer-content">
         <div className="footer-left">
           <p className="footer-copyright">
-            © {currentYear} ZILLIT. All rights reserved.
+            © {currentYear} {settings.shop_name || "ZILLIT"}. All rights reserved.
           </p>
+          <p className="footer-poweredby">Powered by MR Solutions</p>
         </div>
 
         <div className="footer-right">

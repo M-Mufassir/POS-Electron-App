@@ -1,13 +1,63 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Banner from "../../components/Banner"
-import AddCategoryCard from "./Components/AddCategoryCard"
+import CategoryFormModal from "./Components/CategoryFormModal"
 import { useAuth } from "../../context/AuthContext"
+import { buildCategoryTree, getSubtreeProductCount } from "../../utils/categoryTree"
+
+function CategoryRow({ node, depth, onEdit, onAddSubcategory, onDeactivate }) {
+  const rolledUpCount = getSubtreeProductCount(node)
+
+  return (
+    <>
+      <div className="pos-card flex flex-wrap items-center justify-between gap-4">
+        <div style={{ paddingLeft: `${depth * 24}px` }}>
+          <h3 className="text-lg font-semibold text-slate-800">
+            {depth > 0 ? <span className="text-slate-400 mr-1">└</span> : null}
+            {node.name}
+          </h3>
+          <p className="text-sm text-slate-500 mt-1">
+            {node.description || "No description provided."}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="bg-slate-100 border border-slate-200 px-4 py-2 min-w-36 text-center">
+            <p className="text-xs text-slate-500 uppercase tracking-wide">Products</p>
+            <p className="text-2xl font-bold text-slate-800">{rolledUpCount}</p>
+          </div>
+          <button type="button" className="pos-btn-secondary" onClick={() => onAddSubcategory(node)}>
+            Add Subcategory
+          </button>
+          <button type="button" className="pos-btn-secondary" onClick={() => onEdit(node)}>
+            Edit
+          </button>
+          <button type="button" className="pos-btn-danger" onClick={() => onDeactivate(node)}>
+            Deactivate
+          </button>
+        </div>
+      </div>
+
+      {node.children.map((child) => (
+        <CategoryRow
+          key={child.id}
+          node={child}
+          depth={depth + 1}
+          onEdit={onEdit}
+          onAddSubcategory={onAddSubcategory}
+          onDeactivate={onDeactivate}
+        />
+      ))}
+    </>
+  )
+}
 
 function Categories() {
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [editingCategory, setEditingCategory] = useState(null)
+  const [defaultParentId, setDefaultParentId] = useState(null)
   const [savingCategory, setSavingCategory] = useState(false)
   const [banner, setBanner] = useState({ type: "", message: "" })
   const { hasPermission } = useAuth()
@@ -44,6 +94,8 @@ function Categories() {
     fetchCategories(true)
   }, [fetchCategories])
 
+  const categoryTree = useMemo(() => buildCategoryTree(categories), [categories])
+
   const summary = useMemo(() => {
     const totalCategories = categories.length
     const totalAssignments = categories.reduce(
@@ -61,19 +113,42 @@ function Categories() {
     }
   }, [categories])
 
-  const handleAddCategory = async (categoryData) => {
+  const openAddModal = () => {
+    setEditingCategory(null)
+    setDefaultParentId(null)
+    setIsFormOpen(true)
+  }
+
+  const openAddSubcategoryModal = (parentCategory) => {
+    setEditingCategory(null)
+    setDefaultParentId(parentCategory.id)
+    setIsFormOpen(true)
+  }
+
+  const openEditModal = (category) => {
+    setEditingCategory(category)
+    setDefaultParentId(null)
+    setIsFormOpen(true)
+  }
+
+  const handleSubmitCategory = async (categoryData) => {
     setSavingCategory(true)
     setBanner({ type: "", message: "" })
 
     try {
-      await window.api.addCategory(categoryData)
-      setIsAddModalOpen(false)
-      setBanner({ type: "success", message: "Category added successfully." })
+      if (editingCategory) {
+        await window.api.updateCategory(editingCategory.id, categoryData)
+        setBanner({ type: "success", message: "Category updated successfully." })
+      } else {
+        await window.api.addCategory(categoryData)
+        setBanner({ type: "success", message: "Category added successfully." })
+      }
+      setIsFormOpen(false)
       await fetchCategories(false)
     } catch (error) {
-      console.error("Failed to add category:", error)
+      console.error("Failed to save category:", error)
 
-      let message = "Failed to add category. Please try again."
+      let message = error?.message || "Failed to save category. Please try again."
       if (typeof error?.message === "string" && error.message.toLowerCase().includes("unique")) {
         message = "A category with this name already exists."
       }
@@ -81,6 +156,23 @@ function Categories() {
       throw new Error(message)
     } finally {
       setSavingCategory(false)
+    }
+  }
+
+  const handleDeactivate = async (category) => {
+    const confirmed = window.confirm(
+      `Deactivate "${category.name}"? Its subcategories will be deactivated too.`,
+    )
+    if (!confirmed) return
+
+    setBanner({ type: "", message: "" })
+    try {
+      await window.api.deactivateCategory(category.id)
+      setBanner({ type: "success", message: "Category deactivated." })
+      await fetchCategories(false)
+    } catch (error) {
+      console.error("Failed to deactivate category:", error)
+      setBanner({ type: "error", message: error?.message || "Failed to deactivate category." })
     }
   }
 
@@ -106,7 +198,7 @@ function Categories() {
         <div>
           <h1 className="pos-section-title">Categories</h1>
           <p className="pos-section-subtitle">
-            View all categories and product distribution by category
+            Organize products into a category tree for faster billing and browsing
           </p>
         </div>
       </div>
@@ -122,7 +214,7 @@ function Categories() {
           <p className="text-sm text-slate-600">
             {refreshing ? "Refreshing category list..." : "Keep categories organized for faster billing."}
           </p>
-          <button className="pos-btn-success" onClick={() => setIsAddModalOpen(true)}>
+          <button className="pos-btn-success" onClick={openAddModal}>
             Add New Category
           </button>
         </div>
@@ -143,38 +235,33 @@ function Categories() {
         </div>
 
         <div className="space-y-3">
-          {categories.length === 0 ? (
+          {categoryTree.length === 0 ? (
             <div className="pos-card">
               <p className="text-slate-600">No categories yet. Add your first category.</p>
             </div>
           ) : (
-            categories.map((category) => (
-              <div
-                key={category.id}
-                className="pos-card flex flex-wrap items-center justify-between gap-4"
-              >
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-800">{category.name}</h3>
-                  <p className="text-sm text-slate-500 mt-1">
-                    {category.description || "No description provided."}
-                  </p>
-                </div>
-
-                <div className="bg-slate-100 border border-slate-200 px-4 py-2 min-w-36 text-center">
-                  <p className="text-xs text-slate-500 uppercase tracking-wide">Products</p>
-                  <p className="text-2xl font-bold text-slate-800">{category.product_count}</p>
-                </div>
-              </div>
+            categoryTree.map((node) => (
+              <CategoryRow
+                key={node.id}
+                node={node}
+                depth={0}
+                onEdit={openEditModal}
+                onAddSubcategory={openAddSubcategoryModal}
+                onDeactivate={handleDeactivate}
+              />
             ))
           )}
         </div>
       </div>
 
-      <AddCategoryCard
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onSubmit={handleAddCategory}
+      <CategoryFormModal
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        onSubmit={handleSubmitCategory}
         saving={savingCategory}
+        categories={categories}
+        editingCategory={editingCategory}
+        defaultParentId={defaultParentId}
       />
     </div>
   )

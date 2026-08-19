@@ -16,18 +16,25 @@ try {
 
 let db
 
+// Shared by db.js (pos.db location) and settingsService.js (logo storage) so
+// both land in the same app-data root: a `data/` folder next to the project
+// in dev, or Electron's userData directory once packaged.
+export function getDataBasePath() {
+  const isPackaged = Boolean(electronApp?.isPackaged)
+  const envBasePath = String(process.env.POS_DATA_DIR || '').trim()
+  return envBasePath || (
+    !isPackaged || !electronApp
+      ? path.join(process.cwd(), 'data')
+      : path.join(electronApp.getPath('userData'), 'data')
+  )
+}
+
 export function initializeDatabase() {
   if (db) {
     return db
   }
 
-  const isPackaged = Boolean(electronApp?.isPackaged)
-  const envBasePath = String(process.env.POS_DATA_DIR || '').trim()
-  const basePath = envBasePath || (
-    !isPackaged || !electronApp
-      ? path.join(process.cwd(), 'data')
-      : path.join(electronApp.getPath('userData'), 'data')
-  )
+  const basePath = getDataBasePath()
 
   if (!fs.existsSync(basePath)) fs.mkdirSync(basePath, { recursive: true })
 
@@ -211,11 +218,62 @@ export function initializeDatabase() {
 
         FOREIGN KEY (bill_id) REFERENCES bills(id) ON DELETE CASCADE
       );
-      `)
+      `),
 
+    db.run(`
+        CREATE TABLE IF NOT EXISTS app_settings (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        shop_name TEXT DEFAULT 'My Store',
+        shop_address TEXT DEFAULT '',
+        shop_phone TEXT DEFAULT '',
+        shop_email TEXT DEFAULT '',
+        logo_path TEXT,
+        currency_symbol TEXT DEFAULT 'Rs.',
+        tax_rate REAL DEFAULT 0,
+        theme_primary TEXT DEFAULT '#5b6670',
+        theme_success TEXT DEFAULT '#56786d',
+        theme_warning TEXT DEFAULT '#9f875b',
+        theme_danger TEXT DEFAULT '#8c656c',
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+      `),
+
+    // --- Lightweight migrations for pre-existing databases ---
+    // CREATE TABLE IF NOT EXISTS does not add columns to tables that already
+    // exist from an earlier version of the app, so add any missing columns
+    // here. ALTER TABLE ADD COLUMN throws "duplicate column name" once the
+    // column already exists - that's expected and safely ignored below,
+    // which keeps this idempotent on every startup.
+    db.run(`ALTER TABLE categories ADD COLUMN parent_id INTEGER REFERENCES categories(id)`, logMigrationError),
+    db.run(`ALTER TABLE categories ADD COLUMN sort_order INTEGER DEFAULT 0`, logMigrationError),
+    db.run(`ALTER TABLE bills ADD COLUMN tax_amount REAL DEFAULT 0`, logMigrationError),
+    db.run(`ALTER TABLE app_settings ADD COLUMN theme_preset TEXT DEFAULT 'light'`, logMigrationError),
+    db.run(`ALTER TABLE app_settings ADD COLUMN theme_colors TEXT`, logMigrationError),
+
+    db.run(`
+      INSERT OR IGNORE INTO app_settings (id, shop_name, shop_address, shop_phone, shop_email)
+      VALUES (1, 'My Store', '', '', '')
+    `),
+
+    // One-time (safe to re-run) cleanup: a barcode should map to exactly one
+    // (product, unit) pair. This removes older duplicate rows left behind
+    // before that rule was enforced at the service layer, keeping the most
+    // recently updated barcode per product/unit.
+    db.run(`
+      DELETE FROM barCodes
+      WHERE id NOT IN (
+        SELECT MAX(id) FROM barCodes GROUP BY product_id, unit_id
+      )
+    `)
   })
 
   return db
+}
+
+function logMigrationError(err) {
+  if (err && !/duplicate column/i.test(err.message)) {
+    console.error('Migration error:', err.message)
+  }
 }
 
 export function getDB() {

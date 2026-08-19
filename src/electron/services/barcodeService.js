@@ -2,9 +2,22 @@
   deleteBarcodeById,
   insertBarcode,
   selectAssignableUnitsByProductId,
+  selectBarcodeByProductAndUnit,
+  selectBarcodeByValue,
   selectBarcodesByProductId,
   updateBarcodeById,
 } from "../repositories/barcodeRepository.js"
+import {
+  generateInternalEan13,
+  isStandardBarcodeLength,
+  isValidBarcodeChecksum,
+} from "../../shared/barcodeUtils.js"
+
+const assertValidChecksum = (barcode) => {
+  if (isStandardBarcodeLength(barcode) && !isValidBarcodeChecksum(barcode)) {
+    throw new Error("Barcode checksum is invalid for a 12/13-digit UPC-A/EAN-13 code")
+  }
+}
 
 export async function getBarcodesByProductId(productId) {
   const parsedProductId = Number(productId)
@@ -35,6 +48,18 @@ export async function addBarcode(input) {
   }
   if (!barcode) {
     throw new Error("Barcode is required")
+  }
+
+  assertValidChecksum(barcode)
+
+  const existingForUnit = await selectBarcodeByProductAndUnit(parsedProductId, parsedUnitId)
+  if (existingForUnit) {
+    throw new Error("A barcode already exists for this unit. Edit the existing one instead.")
+  }
+
+  const existingForValue = await selectBarcodeByValue(barcode)
+  if (existingForValue) {
+    throw new Error("This barcode value is already assigned to another product/unit.")
   }
 
   const result = await insertBarcode({
@@ -70,6 +95,18 @@ export async function updateBarcode(id, input) {
     throw new Error("Barcode is required")
   }
 
+  assertValidChecksum(barcode)
+
+  const existingForUnit = await selectBarcodeByProductAndUnit(parsedProductId, parsedUnitId)
+  if (existingForUnit && Number(existingForUnit.id) !== parsedId) {
+    throw new Error("A barcode already exists for this unit. Edit the existing one instead.")
+  }
+
+  const existingForValue = await selectBarcodeByValue(barcode)
+  if (existingForValue && Number(existingForValue.id) !== parsedId) {
+    throw new Error("This barcode value is already assigned to another product/unit.")
+  }
+
   const result = await updateBarcodeById(parsedId, {
     product_id: parsedProductId,
     unit_id: parsedUnitId,
@@ -98,4 +135,15 @@ export async function deleteBarcode(id) {
   if (result.changes === 0) {
     throw new Error("Barcode not found")
   }
+}
+
+export async function generateBarcode() {
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const candidate = generateInternalEan13()
+    const existing = await selectBarcodeByValue(candidate)
+    if (!existing) {
+      return { barcode: candidate }
+    }
+  }
+  throw new Error("Unable to generate a unique barcode. Please try again.")
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import BillDetailsModal from "./components/BillDetailsModal"
 import { useAuth } from "../../context/AuthContext"
+import { useSettings } from "../../context/SettingsContext"
 import { formatAppDateTime } from "../../utils/dateTime"
 
 const formatCurrency = (value) => {
@@ -13,6 +14,8 @@ const formatCurrency = (value) => {
 export default function BillsList() {
   const navigate = useNavigate()
   const { hasPermission } = useAuth()
+  const { settings } = useSettings()
+  const currencySymbol = settings.currency_symbol || "Rs."
   const canDeleteBillRecords = hasPermission("delete_bill_records")
   const [bills, setBills] = useState([])
   const [loading, setLoading] = useState(true)
@@ -145,11 +148,11 @@ export default function BillsList() {
           </div>
           <div className="page-summary-card accent">
             <span className="page-summary-label">Revenue</span>
-            <strong>Rs. {formatCurrency(billSummary.totalRevenue)}</strong>
+            <strong>{currencySymbol} {formatCurrency(billSummary.totalRevenue)}</strong>
           </div>
           <div className="page-summary-card danger">
             <span className="page-summary-label">Outstanding</span>
-            <strong>Rs. {formatCurrency(billSummary.outstanding)}</strong>
+            <strong>{currencySymbol} {formatCurrency(billSummary.outstanding)}</strong>
           </div>
         </div>
 
@@ -228,9 +231,9 @@ export default function BillsList() {
                         {bill.status}
                       </span>
                     </td>
-                    <td>Rs. {formatCurrency(bill.total_amount)}</td>
-                    <td>Rs. {formatCurrency(bill.paid_amount)}</td>
-                    <td>Rs. {formatCurrency(bill.balance_amount)}</td>
+                    <td>{currencySymbol} {formatCurrency(bill.total_amount)}</td>
+                    <td>{currencySymbol} {formatCurrency(bill.paid_amount)}</td>
+                    <td>{currencySymbol} {formatCurrency(bill.balance_amount)}</td>
                     <td>{formatAppDateTime(bill.updated_at)}</td>
                     {canDeleteBillRecords ? (
                       <td>

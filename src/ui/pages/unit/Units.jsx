@@ -8,6 +8,7 @@ function Units() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [editingUnit, setEditingUnit] = useState(null)
   const [savingUnit, setSavingUnit] = useState(false)
   const [banner, setBanner] = useState({ type: "", message: "" })
   const { hasPermission } = useAuth()
@@ -57,19 +58,25 @@ function Units() {
     }
   }, [units])
 
-  const handleAddUnit = async (unitData) => {
+  const handleSubmitUnit = async (unitData) => {
     setSavingUnit(true)
     setBanner({ type: "", message: "" })
 
     try {
-      await window.api.addUnit(unitData)
+      if (editingUnit) {
+        await window.api.updateUnit(editingUnit.id, unitData)
+        setBanner({ type: "success", message: "Unit updated successfully." })
+      } else {
+        await window.api.addUnit(unitData)
+        setBanner({ type: "success", message: "Unit added successfully." })
+      }
       setIsAddModalOpen(false)
-      setBanner({ type: "success", message: "Unit added successfully." })
+      setEditingUnit(null)
       await fetchUnits(false)
     } catch (error) {
-      console.error("Failed to add unit:", error)
+      console.error("Failed to save unit:", error)
 
-      let message = "Failed to add unit. Please try again."
+      let message = error?.message || "Failed to save unit. Please try again."
       if (typeof error?.message === "string" && error.message.toLowerCase().includes("unique")) {
         message = "A unit with this name or symbol already exists."
       }
@@ -77,6 +84,26 @@ function Units() {
       throw new Error(message)
     } finally {
       setSavingUnit(false)
+    }
+  }
+
+  const openEditModal = (unit) => {
+    setEditingUnit(unit)
+    setIsAddModalOpen(true)
+  }
+
+  const handleDeactivate = async (unit) => {
+    const confirmed = window.confirm(`Deactivate "${unit.name}"?`)
+    if (!confirmed) return
+
+    setBanner({ type: "", message: "" })
+    try {
+      await window.api.deactivateUnit(unit.id)
+      setBanner({ type: "success", message: "Unit deactivated." })
+      await fetchUnits(false)
+    } catch (error) {
+      console.error("Failed to deactivate unit:", error)
+      setBanner({ type: "error", message: error?.message || "Failed to deactivate unit." })
     }
   }
 
@@ -118,7 +145,13 @@ function Units() {
           <p className="text-sm text-slate-600">
             {refreshing ? "Refreshing unit list..." : "Manage measurement units consistently."}
           </p>
-          <button className="pos-btn-success" onClick={() => setIsAddModalOpen(true)}>
+          <button
+            className="pos-btn-success"
+            onClick={() => {
+              setEditingUnit(null)
+              setIsAddModalOpen(true)
+            }}
+          >
             Add New Unit
           </button>
         </div>
@@ -158,9 +191,17 @@ function Units() {
                   </p>
                 </div>
 
-                <div className="bg-slate-100 border border-slate-200 px-4 py-2 min-w-36 text-center">
-                  <p className="text-xs text-slate-500 uppercase tracking-wide">Products</p>
-                  <p className="text-2xl font-bold text-slate-800">{unit.product_count}</p>
+                <div className="flex items-center gap-3">
+                  <div className="bg-slate-100 border border-slate-200 px-4 py-2 min-w-36 text-center">
+                    <p className="text-xs text-slate-500 uppercase tracking-wide">Products</p>
+                    <p className="text-2xl font-bold text-slate-800">{unit.product_count}</p>
+                  </div>
+                  <button type="button" className="pos-btn-secondary" onClick={() => openEditModal(unit)}>
+                    Edit
+                  </button>
+                  <button type="button" className="pos-btn-danger" onClick={() => handleDeactivate(unit)}>
+                    Deactivate
+                  </button>
                 </div>
               </div>
             ))
@@ -170,9 +211,13 @@ function Units() {
 
       <AddUnitCard
         isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onSubmit={handleAddUnit}
+        onClose={() => {
+          setIsAddModalOpen(false)
+          setEditingUnit(null)
+        }}
+        onSubmit={handleSubmitUnit}
         saving={savingUnit}
+        editingUnit={editingUnit}
       />
     </div>
   )

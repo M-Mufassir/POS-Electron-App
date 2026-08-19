@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
+import { useSettings } from "../context/SettingsContext"
 
 const DEFAULT_QUICK_ACTIONS = [
   {
@@ -58,6 +59,8 @@ const CAPABILITY_ITEMS = [
 export default function Home() {
   const navigate = useNavigate()
   const { user, hasPermission } = useAuth()
+  const { settings } = useSettings()
+  const shopName = settings.shop_name || "My Store"
 
   const quickActions = useMemo(
     () =>
@@ -80,7 +83,7 @@ export default function Home() {
       <section className="home-shell">
         <div className="home-stage">
           <div className="home-stage-copy">
-            <span className="home-kicker">Anver Stores</span>
+            <span className="home-kicker">{shopName}</span>
             <h1 className="home-title">Welcome, {user?.username || "Operator"}.</h1>
             <p className="home-subtitle">
               ZILLIT | POS keeps the landing page short: start billing, review invoices,
@@ -99,7 +102,7 @@ export default function Home() {
             <div className="home-status-strip">
               <div className="home-status-card">
                 <span className="home-status-label">Shop</span>
-                <strong>Anver Stores</strong>
+                <strong>{shopName}</strong>
               </div>
               <div className="home-status-card">
                 <span className="home-status-label">Signed In As</span>
@@ -143,7 +146,7 @@ export default function Home() {
             <div className="home-card-topline">Quick Actions</div>
             <div className="home-card-heading-row">
               <h2>Go straight to work</h2>
-              <p>Use the main routes for Anver Stores without leaving the landing page.</p>
+              <p>Use the main routes for {shopName} without leaving the landing page.</p>
             </div>
 
             <div className="home-quick-grid">
