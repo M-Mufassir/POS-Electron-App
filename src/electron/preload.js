@@ -56,4 +56,14 @@ contextBridge.exposeInMainWorld("api", {
   listUsers: () => ipcRenderer.invoke("auth-users"),
   createUser: (payload) => ipcRenderer.invoke("auth-create-user", payload),
   changeOwnPassword: (payload) => ipcRenderer.invoke("auth-change-own-password", payload),
+
+  minimizeWindow: () => ipcRenderer.invoke("window-minimize"),
+  toggleMaximizeWindow: () => ipcRenderer.invoke("window-maximize-toggle"),
+  closeWindow: () => ipcRenderer.invoke("window-close"),
+  isWindowMaximized: () => ipcRenderer.invoke("window-is-maximized"),
+  onWindowMaximizedChanged: (callback) => {
+    const listener = (_event, isMaximized) => callback(isMaximized)
+    ipcRenderer.on("window-maximized-changed", listener)
+    return () => ipcRenderer.removeListener("window-maximized-changed", listener)
+  },
 })

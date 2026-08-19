@@ -56,6 +56,14 @@ export default {
         amber: semanticScale("--warning", "--warning-dark"),
         blue: semanticScale("--primary", "--primary-dark"),
       },
+      // The custom title bar (src/ui/components/TitleBar.jsx) takes
+      // --titlebar-height off the top of the window. h-screen is used
+      // throughout the app's loading/permission-denied screens to fill the
+      // viewport - this keeps every one of those in sync with the title
+      // bar's actual height with no per-file changes needed.
+      height: {
+        screen: "calc(100vh - var(--titlebar-height, 0px))",
+      },
     },
   },
   plugins: [],

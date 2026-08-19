@@ -4,12 +4,8 @@
   border-right: 1px solid var(--border-gray-200);
   display: flex;
   flex-direction: column;
-  position: fixed;
-  left: 0;
-  top: 0;
-  height: 100vh;
-  z-index: 1000;
   flex-shrink: 0;
+  overflow: hidden;
   box-shadow: 16px 0 36px rgba(0, 0, 0, 0.24);
 }
 
@@ -155,6 +151,14 @@
   }
 
   .pos-navbar {
+    /* Overlays the content as a drawer on small screens instead of
+       pushing it, anchored to .app-layout (position: relative) rather
+       than the viewport so it still sits below the title bar. */
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    z-index: 1000;
     transition: transform 0.3s ease;
   }
 

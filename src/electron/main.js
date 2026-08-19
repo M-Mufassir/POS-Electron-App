@@ -15,7 +15,9 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    title: 'Inventory System',
     autoHideMenuBar: true, // hides menu
+    frame: false, // custom in-app title bar (src/ui/components/TitleBar.jsx) replaces the OS chrome
     show: false, // shown on 'ready-to-show', already maximized, to avoid a small-then-big flash
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -29,6 +31,12 @@ function createWindow() {
     mainWindow.show()
   })
 
+  const notifyMaximizedState = () => {
+    mainWindow.webContents.send('window-maximized-changed', mainWindow.isMaximized())
+  }
+  mainWindow.on('maximize', notifyMaximizedState)
+  mainWindow.on('unmaximize', notifyMaximizedState)
+
   if (isDev()) {
     mainWindow.loadURL('http://localhost:5123')
     return
@@ -36,6 +44,20 @@ function createWindow() {
 
   const rendererPath = path.join(__dirname, '../../dist-react/index.html')
   mainWindow.loadFile(rendererPath)
+}
+
+function registerWindowControlHandlers() {
+  ipcMain.handle('window-minimize', () => mainWindow?.minimize())
+  ipcMain.handle('window-maximize-toggle', () => {
+    if (!mainWindow) return
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize()
+    } else {
+      mainWindow.maximize()
+    }
+  })
+  ipcMain.handle('window-close', () => mainWindow?.close())
+  ipcMain.handle('window-is-maximized', () => Boolean(mainWindow?.isMaximized()))
 }
 
 app.whenReady().then(() => {
@@ -51,4 +73,5 @@ app.on('window-all-closed', () => {
 
 /* ================= IPC ================= */
 registerIpcHandlers(ipcMain)
+registerWindowControlHandlers()
 

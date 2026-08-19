@@ -35,6 +35,8 @@
   --fw-medium: 500;
   --fw-semibold: 600;
   --fw-bold: 700;
+
+  --titlebar-height: 38px;
 }
 
 * {

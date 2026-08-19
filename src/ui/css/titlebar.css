@@ -1,0 +1,73 @@
+.app-titlebar {
+  height: var(--titlebar-height);
+  flex-shrink: 0;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  background: var(--primary-dark);
+  -webkit-user-select: none;
+  user-select: none;
+  z-index: 2000;
+}
+
+.app-titlebar-drag {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-left: 0.9rem;
+  min-width: 0;
+  -webkit-app-region: drag;
+}
+
+.app-titlebar-logo {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.app-titlebar-title {
+  color: #f4f6f8;
+  font-size: 0.78rem;
+  font-weight: var(--fw-medium);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-titlebar-controls {
+  display: flex;
+  align-items: stretch;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar-btn {
+  width: 46px;
+  height: var(--titlebar-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: #e7ebee;
+  cursor: pointer;
+}
+
+.titlebar-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.titlebar-btn:active {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.titlebar-btn-close:hover {
+  background: #e81123;
+  color: #ffffff;
+}
+
+.titlebar-btn-close:active {
+  background: #f1707a;
+}
