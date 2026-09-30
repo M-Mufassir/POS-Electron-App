@@ -1,24 +1,25 @@
 .pos-form-group {
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.85rem;
 }
 
 .pos-label {
   display: block;
   font-weight: var(--fw-medium);
   color: var(--text-label);
-  margin-bottom: 0.5rem;
-  font-size: 0.88rem;
-  letter-spacing: 0.03em;
+  margin-bottom: 0.35rem;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
 }
 
 .pos-input {
   width: 100%;
-  padding: 0.82rem 1rem;
-  background: color-mix(in srgb, var(--bg-elevated) 95%, transparent);
+  padding: 0.52rem 0.75rem;
+  background: var(--bg-white);
   border: 1px solid var(--border-gray-300);
-  border-radius: 14px;
+  border-radius: var(--radius);
   color: var(--text-body);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+  line-height: 1.35;
 }
 
 .pos-input::placeholder {
@@ -26,18 +27,18 @@
 }
 
 .pos-input:hover {
-  border-color: var(--primary);
+  border-color: var(--border-gray-300);
 }
 
 .pos-input:focus {
   outline: none;
-  border-color: var(--primary-light);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 14%, transparent);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent);
   background: var(--bg-elevated);
 }
 
 .pos-input:disabled {
-  background: color-mix(in srgb, var(--bg-soft) 70%, transparent);
+  background: var(--bg-soft);
   color: var(--text-hint);
   cursor: not-allowed;
 }
@@ -48,6 +49,7 @@
 
 .pos-input.error:focus {
   border-color: var(--danger-dark);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--danger) 20%, transparent);
 }
 
 .pos-input.success {
@@ -56,10 +58,11 @@
 
 .pos-input.success:focus {
   border-color: var(--success-dark);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--success) 20%, transparent);
 }
 
 textarea.pos-input {
-  min-height: 120px;
+  min-height: 90px;
   resize: vertical;
   font-family: inherit;
 }
@@ -69,19 +72,19 @@ select.pos-input {
   appearance: none;
   background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2344505b' stroke-width='1.8'%3e%3cpath d='M6 9l6 6 6-6'/%3e%3c/svg%3e");
   background-repeat: no-repeat;
-  background-position: right 1rem center;
-  background-size: 1.1rem 1.1rem;
-  padding-right: 2.5rem;
+  background-position: right 0.75rem center;
+  background-size: 1rem 1rem;
+  padding-right: 2.2rem;
 }
 
 input[type="file"].pos-input {
-  padding: 0.5rem;
+  padding: 0.4rem;
 }
 
 .pos-input-group {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
 .pos-input-group .pos-input {
@@ -89,11 +92,11 @@ input[type="file"].pos-input {
 }
 
 .pos-input-group-addon {
-  padding: 0.82rem 1rem;
+  padding: 0.52rem 0.75rem;
   background: var(--bg-soft);
   border: 1px solid var(--border-gray-300);
-  border-radius: 14px;
+  border-radius: var(--radius);
   color: var(--text-label);
   font-weight: var(--fw-medium);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }

@@ -85,6 +85,38 @@ export const selectAllBills = () => {
   )
 }
 
+export const selectBillsInDateRange = (fromDate, toDate) => {
+  return allQuery(
+    `SELECT
+        id,
+        invoice_no,
+        customer_name,
+        status,
+        subtotal,
+        discount_type,
+        discount_value,
+        tax_amount,
+        total_amount,
+        paid_amount,
+        balance_amount,
+        created_at,
+        updated_at
+     FROM bills
+     WHERE date(created_at) >= date(?) AND date(created_at) <= date(?)
+     ORDER BY created_at ASC`,
+    [fromDate, toDate],
+  )
+}
+
+export const selectPaymentsInDateRange = (fromDate, toDate) => {
+  return allQuery(
+    `SELECT payment_method, amount, created_at
+     FROM payments
+     WHERE date(created_at) >= date(?) AND date(created_at) <= date(?)`,
+    [fromDate, toDate],
+  )
+}
+
 export const selectProductPricing = (productId) => {
   return getQuery(
     `SELECT id, name, base_price, base_unit_id, stock_base_qty, status

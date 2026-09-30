@@ -14,9 +14,11 @@ import {
   selectBarcodeDetails,
   selectBillById,
   selectBillItemsByBillId,
+  selectBillsInDateRange,
   selectBillState,
   selectOpenBillsSummary,
   selectPaymentsByBillId,
+  selectPaymentsInDateRange,
   selectProductPricing,
   selectUnitMultiplier,
   updateBillById,
@@ -254,6 +256,84 @@ export async function getPaymentsForBill(billId) {
     throw new Error("Invalid bill id")
   }
   return await selectPaymentsByBillId(parsedId)
+}
+
+const BILL_STATUSES = ["OPEN", "PARTIAL", "PAID", "CANCELLED"]
+
+const toDateOnly = (value) => {
+  const date = value instanceof Date ? value : new Date(value)
+  return date.toISOString().slice(0, 10)
+}
+
+const sum = (values) => values.reduce((total, value) => total + Number(value || 0), 0)
+
+export async function getBillingAnalysis(filters = {}) {
+  const today = toDateOnly(new Date())
+  const defaultFrom = toDateOnly(new Date(Date.now() - 29 * 24 * 60 * 60 * 1000))
+
+  const from = /^\d{4}-\d{2}-\d{2}$/.test(filters.from) ? filters.from : defaultFrom
+  const to = /^\d{4}-\d{2}-\d{2}$/.test(filters.to) ? filters.to : today
+  const statusFilter = BILL_STATUSES.includes(String(filters.status || "").toUpperCase())
+    ? String(filters.status).toUpperCase()
+    : "ALL"
+  const customerFilter = String(filters.customer_name || "").trim().toLowerCase()
+
+  const rawBills = await selectBillsInDateRange(from, to)
+  const filteredBills = rawBills.filter((bill) => {
+    const matchesStatus = statusFilter === "ALL" || bill.status === statusFilter
+    const matchesCustomer =
+      !customerFilter || String(bill.customer_name || "").toLowerCase().includes(customerFilter)
+    return matchesStatus && matchesCustomer
+  })
+
+  const nonCancelled = filteredBills.filter((bill) => bill.status !== "CANCELLED")
+  const outstandingBills = filteredBills.filter((bill) => bill.status === "OPEN" || bill.status === "PARTIAL")
+
+  const totalSales = sum(nonCancelled.map((bill) => bill.total_amount))
+  const totalCollected = sum(filteredBills.map((bill) => bill.paid_amount))
+  const totalOutstanding = sum(outstandingBills.map((bill) => bill.balance_amount))
+  const totalBills = filteredBills.length
+  const averageBillValue = nonCancelled.length > 0 ? totalSales / nonCancelled.length : 0
+
+  const statusBreakdown = BILL_STATUSES.map((status) => {
+    const matching = filteredBills.filter((bill) => bill.status === status)
+    return {
+      key: status,
+      label: status.charAt(0) + status.slice(1).toLowerCase(),
+      value: sum(matching.map((bill) => bill.total_amount)),
+      count: matching.length,
+    }
+  })
+
+  const dailyMap = new Map()
+  for (const bill of nonCancelled) {
+    const day = String(bill.created_at).slice(0, 10)
+    const entry = dailyMap.get(day) || { date: day, sales: 0, collected: 0 }
+    entry.sales += Number(bill.total_amount || 0)
+    entry.collected += Number(bill.paid_amount || 0)
+    dailyMap.set(day, entry)
+  }
+  const dailyRevenue = Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date))
+
+  const rawPayments = await selectPaymentsInDateRange(from, to)
+  const paymentMethodBreakdown = VALID_PAYMENT_METHODS.map((method) => {
+    const matching = rawPayments.filter((payment) => payment.payment_method === method)
+    return {
+      key: method,
+      label: method.charAt(0) + method.slice(1).toLowerCase(),
+      value: sum(matching.map((payment) => payment.amount)),
+      count: matching.length,
+    }
+  })
+
+  return {
+    filters: { from, to, status: statusFilter, customer_name: filters.customer_name || "" },
+    summary: { totalSales, totalCollected, totalOutstanding, totalBills, averageBillValue },
+    statusBreakdown,
+    dailyRevenue,
+    paymentMethodBreakdown,
+    bills: [...filteredBills].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))),
+  }
 }
 
 export async function getAllBills() {

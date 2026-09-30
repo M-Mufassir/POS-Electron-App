@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import Banner from "../../components/Banner"
 import { useAuth } from "../../context/AuthContext"
 import { useSettings } from "../../context/SettingsContext"
 import { THEME_COLOR_GROUPS, THEME_PRESETS } from "../../../shared/themePresets"
 
 export default function Settings() {
+  const navigate = useNavigate()
   const { hasPermission } = useAuth()
   const { settings, logoDataUrl, refreshSettings } = useSettings()
   const canManageSettings = hasPermission("manage_settings")
@@ -106,6 +108,9 @@ export default function Settings() {
           <h1 className="pos-section-title">Settings</h1>
           <p className="pos-section-subtitle">Shop identity, branding, theme, and tax — admin only</p>
         </div>
+        <button type="button" className="pos-btn-secondary" onClick={() => navigate("/admin")}>
+          Back to Admin
+        </button>
       </div>
 
       <div className="p-6 flex-1 overflow-y-auto space-y-6">

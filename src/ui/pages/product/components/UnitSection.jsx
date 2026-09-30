@@ -83,7 +83,7 @@ export default function UnitSection({
       </div>
 
       {showEditor && (
-        <div className="mt-5 border border-slate-200 p-4 bg-slate-50 rounded-lg">
+        <div className="mt-5 border border-slate-200 p-4 bg-slate-50 rounded">
           <p className="text-sm text-slate-500 mb-4">
             Base unit is always available automatically. Select only additional selling units here.
           </p>
@@ -116,7 +116,7 @@ export default function UnitSection({
               )
             })}
             {selectableUnits.length === 0 && (
-              <div className="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
+              <div className="rounded border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
                 No extra units available after excluding the selected base unit.
               </div>
             )}

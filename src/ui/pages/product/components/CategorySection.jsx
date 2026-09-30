@@ -43,12 +43,12 @@ export default function CategorySection({
       </div>
 
       {showEditor && (
-        <div className="mt-5 border border-slate-200 p-4 bg-slate-50 rounded-lg">
+        <div className="mt-5 border border-slate-200 p-4 bg-slate-50 rounded">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {flatTree.map(({ category, depth }) => (
               <label
                 key={category.id}
-                className="flex items-center gap-2 border border-slate-200 bg-white p-3 rounded-lg"
+                className="flex items-center gap-2 border border-slate-200 bg-white p-3 rounded"
                 style={{ marginLeft: `${depth * 16}px` }}
               >
                 <input

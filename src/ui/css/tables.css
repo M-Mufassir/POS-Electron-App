@@ -1,48 +1,50 @@
 .pos-table {
   border-collapse: collapse;
   width: 100%;
-  background: transparent;
+  background: var(--bg-elevated);
 }
 
 .pos-table thead {
-  background: color-mix(in srgb, var(--bg-soft) 80%, transparent);
+  background: var(--bg-soft);
   border-bottom: 1px solid var(--border-gray-300);
 }
 
 .pos-table thead th {
-  padding: 1rem;
+  padding: 0.65rem 0.85rem;
   text-align: left;
   color: var(--text-label);
   font-weight: var(--fw-bold);
-  font-size: 0.8rem;
+  font-size: 0.74rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
 }
 
 .pos-table tbody tr {
-  border-bottom: 1px solid color-mix(in srgb, var(--text-body) 8%, transparent);
+  border-bottom: 1px solid var(--border-gray-200);
 }
 
 .pos-table tbody tr:hover {
-  background: color-mix(in srgb, var(--primary) 6%, transparent);
+  background: color-mix(in srgb, var(--primary) 5%, var(--bg-elevated));
 }
 
 .pos-table tbody tr:active {
-  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  background: color-mix(in srgb, var(--primary) 10%, var(--bg-elevated));
 }
 
 .pos-table td {
-  padding: 1rem;
+  padding: 0.65rem 0.85rem;
   color: var(--text-body);
   font-weight: var(--fw-normal);
+  font-size: 0.86rem;
 }
 
 .pos-table tbody tr:nth-child(even) {
-  background: color-mix(in srgb, var(--bg-elevated) 34%, transparent);
+  background: color-mix(in srgb, var(--bg-white) 80%, transparent);
 }
 
 .pos-table tbody tr:nth-child(even):hover {
-  background: color-mix(in srgb, var(--primary) 6%, transparent);
+  background: color-mix(in srgb, var(--primary) 5%, var(--bg-elevated));
 }
 
 .pos-table td.text-success {
@@ -74,13 +76,14 @@
 }
 
 .pos-table td.actions button {
-  margin: 0 0.25rem;
+  margin: 0 0.2rem;
 }
 
 .pos-table-wrapper {
   overflow-x: auto;
   border: 1px solid var(--border-gray-200);
-  border-radius: 20px;
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
 }
 
 .pos-table-wrapper .pos-table {
@@ -95,5 +98,6 @@
 
 .pos-table.compact td,
 .pos-table.compact th {
-  padding: 0.6rem;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.82rem;
 }

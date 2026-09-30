@@ -323,7 +323,7 @@ export default function EditProduct() {
               <p className="text-sm text-gray-600 mt-1">
                 Current status:
                 <span
-                  className={`ml-2 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                  className={`ml-2 inline-flex items-center rounded-sm px-2 py-0.5 text-xs font-medium ${
                     status === 1
                       ? "bg-green-100 text-green-800 border border-green-200"
                       : "bg-red-100 text-red-800 border border-red-200"
@@ -335,7 +335,7 @@ export default function EditProduct() {
               <p className="text-xs text-gray-500 mt-2">Status is saved when you click Update Product.</p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-2 text-sm text-emerald-900">
+              <div className="rounded border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm text-emerald-900">
                 Remaining stock: <strong>{formatQuantity(currentStock)} {baseUnitLabel}</strong>
               </div>
               <button

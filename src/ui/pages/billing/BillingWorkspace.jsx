@@ -1504,7 +1504,7 @@ export default function BillingWorkspace() {
         </div>
         <div className="billing-header-actions">
           <button className="pos-btn-secondary" onClick={() => navigate("/billing/all")}>
-            Bills List
+            Analysis
           </button>
         </div>
       </div>

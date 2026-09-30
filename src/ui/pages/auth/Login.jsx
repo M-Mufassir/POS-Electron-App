@@ -36,7 +36,7 @@ export default function Login() {
         <h2 className="pos-section-title text-center">{settings.shop_name || "Sign In"}</h2>
         <p className="pos-section-subtitle text-center">Access the POS workspace</p>
         {authStatus.can_use_default_admin && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 mt-4 text-sm text-amber-900">
+          <div className="rounded border border-amber-200 bg-amber-50 p-4 mt-4 text-sm text-amber-900">
             <div className="font-semibold">First login detected</div>
             <p className="mt-1">
               No saved users were found. Sign in with the default admin account, then create

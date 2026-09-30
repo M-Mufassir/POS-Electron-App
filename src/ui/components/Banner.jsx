@@ -11,7 +11,7 @@ export default function Banner({ type = "success", message = "", onClose }) {
         : "bg-green-50 border-green-200 text-green-800"
 
   return (
-    <div className={`rounded-lg border px-4 py-3 flex items-center justify-between ${styles}`}>
+    <div className={`rounded border px-4 py-2.5 flex items-center justify-between ${styles}`}>
       <p className="text-sm font-medium">{message}</p>
       {onClose ? (
         <button type="button" onClick={onClose} className="text-sm underline">

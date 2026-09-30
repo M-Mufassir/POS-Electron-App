@@ -41,6 +41,7 @@ contextBridge.exposeInMainWorld("api", {
   deleteBill: (billId) => ipcRenderer.invoke("delete-bill", billId),
   deleteAllBills: () => ipcRenderer.invoke("delete-all-bills"),
   getBillPayments: (billId) => ipcRenderer.invoke("get-bill-payments", billId),
+  getBillingAnalysis: (filters) => ipcRenderer.invoke("get-billing-analysis", filters),
 
   getSettings: () => ipcRenderer.invoke("get-settings"),
   getLogoDataUrl: () => ipcRenderer.invoke("get-logo-data-url"),

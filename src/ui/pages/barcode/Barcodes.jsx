@@ -284,22 +284,22 @@ export default function Barcodes() {
             </select>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="border border-slate-200 p-4 bg-slate-50">
-              <p className="text-sm text-slate-500">Total Units</p>
-              <p className="text-3xl font-bold text-slate-800 mt-2">{summary.totalUnits}</p>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="rounded border border-slate-200 p-3 bg-slate-50">
+              <p className="text-xs text-slate-500 uppercase tracking-wide">Total Units</p>
+              <p className="text-2xl font-bold text-slate-800 mt-1">{summary.totalUnits}</p>
             </div>
-            <div className="border border-slate-200 p-4 bg-slate-50">
-              <p className="text-sm text-slate-500">Assigned</p>
-              <p className="text-3xl font-bold text-slate-800 mt-2">{summary.assignedUnits}</p>
+            <div className="rounded border border-slate-200 p-3 bg-slate-50">
+              <p className="text-xs text-slate-500 uppercase tracking-wide">Assigned</p>
+              <p className="text-2xl font-bold text-slate-800 mt-1">{summary.assignedUnits}</p>
             </div>
-            <div className="border border-slate-200 p-4 bg-slate-50">
-              <p className="text-sm text-slate-500">Missing</p>
-              <p className="text-3xl font-bold text-slate-800 mt-2">{summary.missingUnits}</p>
+            <div className="rounded border border-slate-200 p-3 bg-slate-50">
+              <p className="text-xs text-slate-500 uppercase tracking-wide">Missing</p>
+              <p className="text-2xl font-bold text-slate-800 mt-1">{summary.missingUnits}</p>
             </div>
-            <div className="border border-slate-200 p-4 bg-slate-50">
-              <p className="text-sm text-slate-500">Duplicate Units</p>
-              <p className="text-3xl font-bold text-slate-800 mt-2">{summary.duplicateUnits}</p>
+            <div className="rounded border border-slate-200 p-3 bg-slate-50">
+              <p className="text-xs text-slate-500 uppercase tracking-wide">Duplicate Units</p>
+              <p className="text-2xl font-bold text-slate-800 mt-1">{summary.duplicateUnits}</p>
             </div>
           </div>
         </div>

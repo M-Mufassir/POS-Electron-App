@@ -45,11 +45,6 @@ const Navbar = () => {
         path: "/admin",
         permission: "manage_users",
       },
-      {
-        label: "Settings",
-        path: "/settings",
-        permission: "manage_settings",
-      },
     ],
     [],
   )
@@ -94,19 +89,21 @@ const Navbar = () => {
 
       <div className="navbar-footer">
         <div className="navbar-user-meta">
-          <div>{user?.username || "User"}</div>
-          <div className="navbar-user-role">{user?.role_name || ""}</div>
+          <div className="navbar-user-name">{user?.username || "User"}</div>
+          <div className="navbar-user-role">{user?.role_name || "Operator"}</div>
         </div>
-        <button className="navbar-contact-btn" onClick={logout} title="Sign out">
-          Sign out
-        </button>
-        <button
-          className="navbar-contact-btn"
-          onClick={() => alert("Contact support coming soon")}
-          title="Contact Support"
-        >
-          Contact
-        </button>
+        <div className="navbar-footer-actions">
+          <button className="navbar-contact-btn" onClick={logout} title="Sign out">
+            Sign out
+          </button>
+          <button
+            className="navbar-contact-btn"
+            onClick={() => alert("Contact support coming soon")}
+            title="Contact Support"
+          >
+            Support
+          </button>
+        </div>
         <p className="footer-poweredby">Powered by MR Solutions</p>
         <p className="navbar-version">v1.0.0</p>
       </div>

@@ -171,35 +171,35 @@ function Units() {
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2">
           {units.length === 0 ? (
             <div className="pos-card">
               <p className="text-slate-600">No units yet. Add your first unit.</p>
             </div>
           ) : (
             units.map((unit) => (
-              <div key={unit.id} className="pos-card flex flex-wrap items-center justify-between gap-4">
+              <div key={unit.id} className="border border-slate-200 bg-white rounded p-3 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-800">
-                    {unit.name} <span className="text-slate-500">({unit.symbol})</span>
+                  <h3 className="text-base font-semibold text-slate-800">
+                    {unit.name} <span className="text-slate-500 font-normal">({unit.symbol})</span>
                   </h3>
-                  <p className="text-sm text-slate-500 mt-1">
+                  <p className="text-xs text-slate-500 mt-0.5">
                     {unit.description || "No description provided."}
                   </p>
-                  <p className="text-xs text-slate-500 mt-2">
+                  <p className="text-xs text-slate-500 mt-1">
                     Base multiplier: {unit.base_multiplier}
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <div className="bg-slate-100 border border-slate-200 px-4 py-2 min-w-36 text-center">
+                <div className="flex items-center gap-2">
+                  <div className="rounded border border-slate-200 bg-slate-50 px-3 py-1 min-w-28 text-center">
                     <p className="text-xs text-slate-500 uppercase tracking-wide">Products</p>
-                    <p className="text-2xl font-bold text-slate-800">{unit.product_count}</p>
+                    <p className="text-lg font-bold text-slate-800">{unit.product_count}</p>
                   </div>
-                  <button type="button" className="pos-btn-secondary" onClick={() => openEditModal(unit)}>
+                  <button type="button" className="pos-btn-secondary pos-btn-sm" onClick={() => openEditModal(unit)}>
                     Edit
                   </button>
-                  <button type="button" className="pos-btn-danger" onClick={() => handleDeactivate(unit)}>
+                  <button type="button" className="pos-btn-danger pos-btn-sm" onClick={() => handleDeactivate(unit)}>
                     Deactivate
                   </button>
                 </div>

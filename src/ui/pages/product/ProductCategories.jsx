@@ -154,7 +154,7 @@ function ProductCategories() {
           </div>
 
           {productCategories.length === 0 ? (
-            <div className="bg-gray-50 border border-gray-300 p-4 rounded-lg text-gray-600 text-sm">
+            <div className="bg-gray-50 border border-gray-300 p-4 rounded text-gray-600 text-sm">
               No categories assigned yet.
             </div>
           ) : (
@@ -162,7 +162,7 @@ function ProductCategories() {
               {productCategories.map((category) => (
                 <div
                   key={category.id}
-                  className="flex items-center justify-between border border-slate-200 bg-slate-50 p-3 rounded-lg"
+                  className="flex items-center justify-between border border-slate-200 bg-slate-50 p-3 rounded"
                 >
                   <div>
                     <p className="font-medium text-gray-800">{category.name}</p>
@@ -184,7 +184,7 @@ function ProductCategories() {
           )}
 
           {showAddExisting && (
-            <div className="border border-slate-200 p-4 bg-slate-50 rounded-lg space-y-4">
+            <div className="border border-slate-200 p-4 bg-slate-50 rounded space-y-4">
               <h3 className="pos-section-title text-base">Add From Existing Categories</h3>
 
               {availableCategories.length === 0 ? (
@@ -195,7 +195,7 @@ function ProductCategories() {
                     {availableCategories.map((category) => (
                       <label
                         key={category.id}
-                        className="flex items-center gap-3 border border-slate-200 bg-white p-3 rounded-lg"
+                        className="flex items-center gap-3 border border-slate-200 bg-white p-3 rounded"
                       >
                         <input
                           type="checkbox"

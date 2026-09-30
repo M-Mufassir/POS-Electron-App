@@ -52,7 +52,7 @@ function Table({
                       <td key={col.key} className="text-center">
                         <button
                           onClick={(e) => handleActionClicked(e, row)}
-                          className="pos-btn-primary py-2 px-4 inline-block"
+                          className="pos-btn-primary pos-btn-sm"
                           title={actionLabel}
                         >
                           {actionLabel}
@@ -66,7 +66,7 @@ function Table({
                     return (
                       <td key={col.key}>
                         <span
-                          className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                          className={`inline-flex items-center rounded-sm px-2 py-0.5 text-xs font-medium ${
                             isActive
                               ? "bg-green-100 text-green-800 border border-green-200"
                               : "bg-red-100 text-red-800 border border-red-200"

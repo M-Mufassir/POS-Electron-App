@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import Banner from "../../components/Banner"
 import { useAuth } from "../../context/AuthContext"
 
@@ -12,8 +13,10 @@ const getPreferredRoleId = (roles) => {
 }
 
 export default function AdminDashboard() {
+  const navigate = useNavigate()
   const { refresh, hasPermission, authStatus, roles, user } = useAuth()
   const canManageUsers = hasPermission("manage_users")
+  const canManageSettings = hasPermission("manage_settings")
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [banner, setBanner] = useState({ type: "", message: "" })
@@ -133,6 +136,25 @@ export default function AdminDashboard() {
           <h1 className="pos-section-title">Admin Dashboard</h1>
           <p className="pos-section-subtitle">Manage users, roles, and password access</p>
         </div>
+        {canManageSettings ? (
+          <button
+            type="button"
+            className="icon-btn"
+            title="Settings"
+            aria-label="Open settings"
+            onClick={() => navigate("/settings")}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M19.14 12.94a7.14 7.14 0 0 0 .06-.94 7.14 7.14 0 0 0-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.14.56-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.65 8.84a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.62-.06.94s.02.63.06.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.14.24.42.32.6.22l2.39-.96c.49.38 1.04.7 1.63.94l.36 2.54c.05.24.26.42.5.42h3.84c.24 0 .45-.18.5-.42l.36-2.54c.59-.24 1.14-.56 1.63-.94l2.39.96c.24.1.46.02.6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58Z"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinejoin="round"
+              />
+              <circle cx="12" cy="12" r="3.2" stroke="currentColor" strokeWidth="1.4" />
+            </svg>
+          </button>
+        ) : null}
       </div>
 
       <div className="p-6 flex-1 overflow-y-auto">

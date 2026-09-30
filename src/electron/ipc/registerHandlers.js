@@ -195,6 +195,11 @@ export function registerIpcHandlers(ipcMain) {
     return await billingService.getPaymentsForBill(billId)
   })
 
+  ipcMain.handle("get-billing-analysis", async (event, filters) => {
+    requireAuth(event)
+    return await billingService.getBillingAnalysis(filters)
+  })
+
   // Shop branding is shown on the (unauthenticated) login screen too, so
   // reading it does not require a session.
   ipcMain.handle("get-settings", async () => {

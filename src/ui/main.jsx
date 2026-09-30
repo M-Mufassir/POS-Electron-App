@@ -19,6 +19,7 @@ import "./css/utilities.css"
 import "./css/billing.css"
 import "./css/home.css"
 import "./css/titlebar.css"
+import "./css/analysis.css"
 
 const Router = window.location.protocol === "file:" ? HashRouter : BrowserRouter
 

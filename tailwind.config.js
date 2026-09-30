@@ -64,6 +64,18 @@ export default {
       height: {
         screen: "calc(100vh - var(--titlebar-height, 0px))",
       },
+      borderRadius: {
+        none: "0px",
+        xs: "2px",
+        sm: "3px",
+        DEFAULT: "4px",
+        md: "4px",
+        lg: "6px",
+        xl: "6px",
+        "2xl": "6px",
+        "3xl": "6px",
+        full: "4px",
+      },
     },
   },
   plugins: [],

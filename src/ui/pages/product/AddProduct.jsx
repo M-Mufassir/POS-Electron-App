@@ -185,7 +185,7 @@ function AddProduct() {
               <p className="text-sm text-gray-600 mt-1">
                 New products start as:
                 <span
-                  className={`ml-2 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                  className={`ml-2 inline-flex items-center rounded-sm px-2 py-0.5 text-xs font-medium ${
                     status === 1
                       ? "bg-green-100 text-green-800 border border-green-200"
                       : "bg-red-100 text-red-800 border border-red-200"
